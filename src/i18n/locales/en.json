@@ -118,6 +118,7 @@
     "usage_stats": "Usage Statistics",
     "config_management": "Config Panel",
     "logs": "Logs Viewer",
+    "call_chain_export": "Call Chain Export",
     "system_info": "Management Center Info"
   },
   "dashboard": {

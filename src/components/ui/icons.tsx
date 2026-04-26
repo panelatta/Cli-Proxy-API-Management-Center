@@ -461,6 +461,21 @@ export function IconSidebarLogs({ size = 20, ...props }: IconProps) {
   );
 }
 
+export function IconSidebarCallChain({ size = 20, ...props }: IconProps) {
+  return (
+    <svg {...sidebarSvgProps} width={size} height={size} {...props}>
+      <circle cx="5.5" cy="6" r="2.5" fill="currentColor" fillOpacity="0.12" />
+      <circle cx="18.5" cy="6" r="2.5" />
+      <circle cx="5.5" cy="18" r="2.5" />
+      <circle cx="18.5" cy="18" r="2.5" fill="currentColor" fillOpacity="0.12" />
+      <path d="M8 6h8" />
+      <path d="M18.5 8.5v7" />
+      <path d="M16 18H8" />
+      <path d="M5.5 15.5v-7" />
+    </svg>
+  );
+}
+
 export function IconSidebarSystem({ size = 20, ...props }: IconProps) {
   return (
     <svg {...sidebarSvgProps} width={size} height={size} {...props}>

@@ -14,6 +14,7 @@ import { PageTransition } from '@/components/common/PageTransition';
 import { MainRoutes } from '@/router/MainRoutes';
 import {
   IconSidebarAuthFiles,
+  IconSidebarCallChain,
   IconSidebarConfig,
   IconSidebarDashboard,
   IconSidebarLogs,
@@ -45,6 +46,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   usage: <IconSidebarUsage size={18} />,
   config: <IconSidebarConfig size={18} />,
   logs: <IconSidebarLogs size={18} />,
+  callChain: <IconSidebarCallChain size={18} />,
   system: <IconSidebarSystem size={18} />,
 };
 
@@ -391,6 +393,7 @@ export function MainLayout() {
     ...(config?.loggingToFile
       ? [{ path: '/logs', label: t('nav.logs'), icon: sidebarIcons.logs }]
       : []),
+    { path: '/call-chain-export', label: t('nav.call_chain_export'), icon: sidebarIcons.callChain },
     { path: '/system', label: t('nav.system_info'), icon: sidebarIcons.system },
   ];
   const navOrder = navItems.map((item) => item.path);

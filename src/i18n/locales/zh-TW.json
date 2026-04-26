@@ -118,6 +118,7 @@
     "usage_stats": "使用統計",
     "config_management": "設定面板",
     "logs": "記錄檢視",
+    "call_chain_export": "調用鏈匯出",
     "system_info": "中心資訊"
   },
   "dashboard": {
