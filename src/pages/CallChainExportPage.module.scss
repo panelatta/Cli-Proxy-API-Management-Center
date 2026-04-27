@@ -28,6 +28,22 @@
   gap: 8px;
 }
 
+.detailTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.detailSessionId {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .switchGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -198,8 +214,43 @@
   }
 }
 
-.selectedRow {
-  background: rgba($primary-color, 0.08);
+.sessionRow {
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover td {
+    background: var(--bg-secondary);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible td:first-child {
+    box-shadow:
+      inset 3px 0 0 var(--primary-color),
+      inset 0 0 0 2px rgba($primary-color, 0.22);
+  }
+}
+
+.selectedRow td {
+  background: rgba($primary-color, 0.1);
+}
+
+.selectedRow:hover td {
+  background: rgba($primary-color, 0.14);
+}
+
+.selectedRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+.sessionCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
 }
 
 .sessionLink {
@@ -212,6 +263,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+}
+
+.selectedBadge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 2px 7px;
+  border: 1px solid rgba($primary-color, 0.32);
+  border-radius: $radius-full;
+  color: var(--primary-color);
+  background: rgba($primary-color, 0.12);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .countPill {
@@ -241,12 +307,13 @@
 .rowActions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .sessionMeta {
   display: grid;
-  grid-template-columns: 1.3fr repeat(3, minmax(150px, 1fr));
+  grid-template-columns: minmax(110px, 0.8fr) minmax(220px, 1.4fr) repeat(3, minmax(120px, 1fr));
   gap: $spacing-md;
   margin-bottom: $spacing-lg;
 

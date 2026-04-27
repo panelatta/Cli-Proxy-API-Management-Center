@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +12,14 @@ import {
   IconSettings,
   IconSlidersHorizontal,
 } from '@/components/ui/icons';
-import { callChainApi, type CallChainEvent, type CallChainExportPayload, type CallChainExportQuery, type CallChainRequest, type CallChainSession } from '@/services/api/callChain';
+import {
+  callChainApi,
+  type CallChainEvent,
+  type CallChainExportPayload,
+  type CallChainExportQuery,
+  type CallChainRequest,
+  type CallChainSession,
+} from '@/services/api/callChain';
 import { configApi } from '@/services/api/config';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import { downloadBlob } from '@/utils/download';
@@ -116,7 +123,11 @@ function firstEventText(events?: CallChainEvent[]): string {
 
 function uniqueModels(session: CallChainSession): string[] {
   return Array.from(
-    new Set(session.requests.map((request) => request.model).filter((model): model is string => Boolean(model)))
+    new Set(
+      session.requests
+        .map((request) => request.model)
+        .filter((model): model is string => Boolean(model))
+    )
   );
 }
 
@@ -147,10 +158,18 @@ function getSessionEventCount(session: CallChainSession, key: EventKey): number 
 }
 
 function sessionPreview(session: CallChainSession): string {
-  const userInput = session.requests.map((request) => firstEventText(request.user_inputs)).find(Boolean);
-  const modelOutput = session.requests.map((request) => firstEventText(request.model_outputs)).find(Boolean);
-  if (userInput && modelOutput) return `U: ${compactText(userInput, 80)} / A: ${compactText(modelOutput, 80)}`;
-  return compactText(userInput || modelOutput || firstEventText(session.requests[0]?.reasoning), 170);
+  const userInput = session.requests
+    .map((request) => firstEventText(request.user_inputs))
+    .find(Boolean);
+  const modelOutput = session.requests
+    .map((request) => firstEventText(request.model_outputs))
+    .find(Boolean);
+  if (userInput && modelOutput)
+    return `U: ${compactText(userInput, 80)} / A: ${compactText(modelOutput, 80)}`;
+  return compactText(
+    userInput || modelOutput || firstEventText(session.requests[0]?.reasoning),
+    170
+  );
 }
 
 function filenameFromDisposition(disposition: string): string | null {
@@ -179,7 +198,9 @@ function renderEventSummary(request: CallChainRequest, key: EventKey) {
           {events.map((event, index) => (
             <div className={styles.eventItem} key={`${event.source || key}-${event.path || index}`}>
               <div className={styles.eventMeta}>
-                {[event.type, event.name, event.call_id].filter(Boolean).join(' / ') || event.source || '-'}
+                {[event.type, event.name, event.call_id].filter(Boolean).join(' / ') ||
+                  event.source ||
+                  '-'}
               </div>
               <pre>{compactText(event.text || event.raw, 700)}</pre>
             </div>
@@ -210,6 +231,10 @@ export function CallChainExportPage() {
   const sessions = payload?.sessions ?? [];
   const selectedSession = useMemo(
     () => sessions.find((session) => session.id === selectedSessionId) ?? null,
+    [sessions, selectedSessionId]
+  );
+  const selectedSessionIndex = useMemo(
+    () => sessions.findIndex((session) => session.id === selectedSessionId),
     [sessions, selectedSessionId]
   );
 
@@ -342,6 +367,12 @@ export function CallChainExportPage() {
     setSelectedSessionId(session.id);
   }
 
+  function handleSessionRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, sessionId: string) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setSelectedSessionId(sessionId);
+  }
+
   const totalBodyBytes = useMemo(() => {
     return sessions.reduce((sessionTotal, session) => {
       return (
@@ -363,9 +394,7 @@ export function CallChainExportPage() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.pageTitle}>
-        {t('call_chain.title', { defaultValue: '调用链导出' })}
-      </h1>
+      <h1 className={styles.pageTitle}>{t('call_chain.title', { defaultValue: '调用链导出' })}</h1>
 
       <div className={styles.content}>
         <Card
@@ -403,7 +432,9 @@ export function CallChainExportPage() {
             </div>
           </div>
           {!config?.requestLog ? (
-            <div className={styles.warningLine}>request-log 当前未开启，新请求不会生成完整 HTTP 调用链。</div>
+            <div className={styles.warningLine}>
+              request-log 当前未开启，新请求不会生成完整 HTTP 调用链。
+            </div>
           ) : null}
         </Card>
 
@@ -479,7 +510,11 @@ export function CallChainExportPage() {
               <IconSearch size={16} />
               查看会话
             </Button>
-            <Button onClick={() => void handleExport()} disabled={disableControls} loading={exporting}>
+            <Button
+              onClick={() => void handleExport()}
+              disabled={disableControls}
+              loading={exporting}
+            >
               <IconDownload size={16} />
               导出当前筛选
             </Button>
@@ -515,13 +550,21 @@ export function CallChainExportPage() {
             </span>
           }
           extra={
-            <Button variant="ghost" size="sm" onClick={() => void handleLoadSessions()} disabled={disableControls}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void handleLoadSessions()}
+              disabled={disableControls}
+            >
               <IconRefreshCw size={16} />
             </Button>
           }
         >
           {sessions.length === 0 ? (
-            <EmptyState title={loading ? '加载中...' : '暂无会话'} description={loading ? '' : ' '} />
+            <EmptyState
+              title={loading ? '加载中...' : '暂无会话'}
+              description={loading ? '' : ' '}
+            />
           ) : (
             <div className={styles.tableWrap}>
               <table className={styles.sessionsTable}>
@@ -539,19 +582,33 @@ export function CallChainExportPage() {
                 <tbody>
                   {sessions.map((session) => {
                     const models = uniqueModels(session);
+                    const isSelected = selectedSessionId === session.id;
                     return (
                       <tr
                         key={session.id}
-                        className={selectedSessionId === session.id ? styles.selectedRow : ''}
+                        className={`${styles.sessionRow} ${isSelected ? styles.selectedRow : ''}`.trim()}
+                        onClick={() => setSelectedSessionId(session.id)}
+                        onKeyDown={(event) => handleSessionRowKeyDown(event, session.id)}
+                        tabIndex={0}
+                        aria-selected={isSelected}
                       >
                         <td>
-                          <button
-                            type="button"
-                            className={styles.sessionLink}
-                            onClick={() => setSelectedSessionId(session.id)}
-                          >
-                            {session.id}
-                          </button>
+                          <div className={styles.sessionCell}>
+                            <button
+                              type="button"
+                              className={styles.sessionLink}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedSessionId(session.id);
+                              }}
+                              title={session.id}
+                            >
+                              {session.id}
+                            </button>
+                            {isSelected ? (
+                              <span className={styles.selectedBadge}>当前详情</span>
+                            ) : null}
+                          </div>
                         </td>
                         <td>{formatTime(session.started_at)}</td>
                         <td>
@@ -559,16 +616,38 @@ export function CallChainExportPage() {
                         </td>
                         <td>{models.length ? models.slice(0, 3).join(', ') : '-'}</td>
                         <td className={styles.previewCell}>{sessionPreview(session)}</td>
-                        <td className={styles.identifierCell}>{identifierPreview(session.identifiers)}</td>
+                        <td className={styles.identifierCell}>
+                          {identifierPreview(session.identifiers)}
+                        </td>
                         <td>
                           <div className={styles.rowActions}>
-                            <Button variant="ghost" size="sm" onClick={() => applySessionFilter(session)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedSessionId(session.id);
+                              }}
+                            >
+                              查看
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                applySessionFilter(session);
+                              }}
+                            >
                               筛选
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => void handleExport(session.id)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleExport(session.id);
+                              }}
                               disabled={exporting}
                             >
                               导出
@@ -587,9 +666,14 @@ export function CallChainExportPage() {
         {selectedSession ? (
           <Card
             title={
-              <span className={styles.cardTitle}>
-                <IconDownload size={18} />
-                会话详情
+              <span className={styles.detailTitle}>
+                <span className={styles.cardTitle}>
+                  <IconDownload size={18} />
+                  会话详情
+                </span>
+                <span className={styles.detailSessionId}>
+                  #{selectedSessionIndex + 1} / {sessions.length} · {selectedSession.id}
+                </span>
               </span>
             }
             extra={
@@ -606,7 +690,13 @@ export function CallChainExportPage() {
           >
             <div className={styles.sessionMeta}>
               <div>
-                <span>ID</span>
+                <span>当前列表</span>
+                <strong>
+                  #{selectedSessionIndex + 1} / {sessions.length}
+                </strong>
+              </div>
+              <div>
+                <span>当前会话 ID</span>
                 <strong>{selectedSession.id}</strong>
               </div>
               <div>
@@ -629,7 +719,10 @@ export function CallChainExportPage() {
 
             <div className={styles.requestList}>
               {selectedSession.requests.map((request, index) => (
-                <div className={styles.requestItem} key={request.request_id || request.file || index}>
+                <div
+                  className={styles.requestItem}
+                  key={request.request_id || request.file || index}
+                >
                   <div className={styles.requestHeader}>
                     <div>
                       <strong>
