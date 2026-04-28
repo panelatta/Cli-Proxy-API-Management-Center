@@ -474,3 +474,107 @@
   font-size: 11px;
   overflow-wrap: anywhere;
 }
+
+.summaryMode {
+  margin: 0 14px 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.traceDetails,
+.rawDetails {
+  margin: 0 14px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: var(--bg-primary);
+
+  summary {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 9px 12px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
+.traceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-md;
+  padding: 12px;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.traceBlock {
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: var(--bg-primary);
+
+  pre {
+    max-height: 340px;
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+.traceBlockHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}
+
+.rawDetails {
+  pre {
+    max-height: 560px;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}

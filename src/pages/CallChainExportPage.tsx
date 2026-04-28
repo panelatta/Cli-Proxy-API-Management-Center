@@ -211,6 +211,162 @@ function renderEventSummary(request: CallChainRequest, key: EventKey) {
   );
 }
 
+function formatHeaders(headers?: Record<string, string[]>): string {
+  if (!headers) return '';
+  return Object.entries(headers)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([key, values]) => {
+      if (!values.length) return [`${key}:`];
+      return values.map((value) => `${key}: ${value}`);
+    })
+    .join('\n');
+}
+
+function addTraceBlock(
+  blocks: Array<{ key: string; title: string; meta?: string; content: string }>,
+  key: string,
+  title: string,
+  content?: string,
+  meta?: string
+) {
+  const trimmed = content?.trim();
+  if (!trimmed) return;
+  blocks.push({ key, title, meta, content: trimmed });
+}
+
+function buildTraceBlocks(request: CallChainRequest) {
+  const blocks: Array<{ key: string; title: string; meta?: string; content: string }> = [];
+  const http = request.http;
+  if (!http) return blocks;
+
+  addTraceBlock(
+    blocks,
+    'downstream-request-headers',
+    'Downstream Request Headers',
+    formatHeaders(http.downstream_request?.headers)
+  );
+  addTraceBlock(
+    blocks,
+    'downstream-request-body',
+    'Downstream Request Body',
+    http.downstream_request?.body,
+    [request.method, request.url].filter(Boolean).join(' ')
+  );
+
+  http.upstream_requests?.forEach((upstream, index) => {
+    const suffix = upstream.index ?? index + 1;
+    addTraceBlock(
+      blocks,
+      `upstream-request-${suffix}-headers`,
+      `Upstream Request ${suffix} Headers`,
+      formatHeaders(upstream.headers),
+      [upstream.method, upstream.url, upstream.auth].filter(Boolean).join(' · ')
+    );
+    addTraceBlock(
+      blocks,
+      `upstream-request-${suffix}-body`,
+      `Upstream Request ${suffix} Body`,
+      upstream.body,
+      upstream.timestamp
+    );
+  });
+
+  http.upstream_responses?.forEach((upstream, index) => {
+    const suffix = upstream.index ?? index + 1;
+    addTraceBlock(
+      blocks,
+      `upstream-response-${suffix}-headers`,
+      `Upstream Response ${suffix} Headers`,
+      formatHeaders(upstream.headers),
+      upstream.status ? `status ${upstream.status}` : upstream.timestamp
+    );
+    addTraceBlock(
+      blocks,
+      `upstream-response-${suffix}-body`,
+      `Upstream Response ${suffix} Body`,
+      upstream.body,
+      upstream.timestamp
+    );
+  });
+
+  addTraceBlock(
+    blocks,
+    'downstream-response-headers',
+    'Downstream Response Headers',
+    formatHeaders(http.downstream_response?.headers),
+    http.downstream_response?.status ? `status ${http.downstream_response.status}` : undefined
+  );
+  addTraceBlock(
+    blocks,
+    'downstream-response-body',
+    'Downstream Response Body',
+    http.downstream_response?.body
+  );
+
+  http.websocket_timeline?.forEach((event, index) => {
+    addTraceBlock(
+      blocks,
+      `websocket-${index}`,
+      `Websocket ${index + 1}`,
+      event.payload,
+      [event.event, event.timestamp].filter(Boolean).join(' · ')
+    );
+  });
+  http.api_websocket_timeline?.forEach((event, index) => {
+    addTraceBlock(
+      blocks,
+      `api-websocket-${index}`,
+      `API Websocket ${index + 1}`,
+      event.payload,
+      [event.event, event.timestamp].filter(Boolean).join(' · ')
+    );
+  });
+
+  return blocks;
+}
+
+function buildRawLogText(request: CallChainRequest): string {
+  const sections = request.raw_sections || [];
+  return sections
+    .map((section) => `=== ${section.title} ===\n${section.content}`.trimEnd())
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function renderHTTPTrace(request: CallChainRequest) {
+  const blocks = buildTraceBlocks(request);
+  if (!blocks.length) return null;
+
+  return (
+    <details className={styles.traceDetails}>
+      <summary>HTTP 明细 ({blocks.length})</summary>
+      <div className={styles.traceGrid}>
+        {blocks.map((block) => (
+          <div className={styles.traceBlock} key={block.key}>
+            <div className={styles.traceBlockHeader}>
+              <span>{block.title}</span>
+              {block.meta ? <small>{block.meta}</small> : null}
+            </div>
+            <pre>{block.content}</pre>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function renderRawLog(request: CallChainRequest) {
+  const rawLog = buildRawLogText(request);
+  if (!rawLog) return null;
+
+  return (
+    <details className={styles.rawDetails} open>
+      <summary>Raw 日志 ({request.raw_sections?.length ?? 0})</summary>
+      <pre>{rawLog}</pre>
+    </details>
+  );
+}
+
 export function CallChainExportPage() {
   const { t } = useTranslation();
   const { showNotification } = useNotificationStore();
@@ -328,7 +484,8 @@ export function CallChainExportPage() {
   }
 
   async function handleLoadSessions() {
-    await loadSessionsForParams(buildParams({ summary: true, includeRaw: false }));
+    const includeRaw = filters.includeRaw;
+    await loadSessionsForParams(buildParams({ summary: !includeRaw, includeRaw }));
   }
 
   async function handleExport(sessionId?: string) {
@@ -752,6 +909,9 @@ export function CallChainExportPage() {
                       ] as EventKey[]
                     ).map((key) => renderEventSummary(request, key))}
                   </div>
+                  {request.summary ? <div className={styles.summaryMode}>摘要模式</div> : null}
+                  {renderHTTPTrace(request)}
+                  {renderRawLog(request)}
                 </div>
               ))}
             </div>
