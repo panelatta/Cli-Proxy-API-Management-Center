@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import type { Config } from '@/types/config';
 import { buildHeaderObject } from '@/utils/headers';
+import { normalizeAccessApiKeyEntries } from '@/utils/apiKeys';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -113,12 +114,14 @@ const normalizeApiKeyEntry = (entry: unknown): ApiKeyEntry | null => {
   const authIndex = normalizeAuthIndex(
     record?.['auth-index'] ?? record?.authIndex ?? record?.['auth_index']
   );
+  const name = record ? String(record.name ?? '').trim() : '';
 
   const result: ApiKeyEntry = {
     apiKey: trimmed,
     proxyUrl: proxyUrl ? String(proxyUrl) : undefined,
     headers
   };
+  if (name) result.name = name;
   if (authIndex) result.authIndex = authIndex;
   return result;
 };
@@ -421,8 +424,11 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
     config.routingStrategy = String(strategyRaw);
   }
   const apiKeysRaw = raw['api-keys'] ?? raw.apiKeys;
-  if (Array.isArray(apiKeysRaw)) {
-    config.apiKeys = apiKeysRaw.map((key) => String(key)).filter((key) => key.trim() !== '');
+  const apiKeyEntriesRaw = raw['api-key-entries'] ?? raw.apiKeyEntries;
+  const apiKeyEntries = normalizeAccessApiKeyEntries(apiKeyEntriesRaw ?? apiKeysRaw);
+  if (apiKeyEntries.length) {
+    config.apiKeyEntries = apiKeyEntries;
+    config.apiKeys = apiKeyEntries.map((entry) => entry.apiKey);
   }
 
   const geminiList = raw['gemini-api-key'] ?? raw.geminiApiKey ?? raw.geminiApiKeys;

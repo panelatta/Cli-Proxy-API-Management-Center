@@ -3,7 +3,12 @@
  * 与基线 /config 返回结构保持一致（内部使用驼峰形式）
  */
 
-import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from './provider';
+import type {
+  ApiKeyEntry,
+  GeminiKeyConfig,
+  ProviderKeyConfig,
+  OpenAIProviderConfig,
+} from './provider';
 import type { AmpcodeConfig } from './ampcode';
 
 export interface QuotaExceededConfig {
@@ -24,6 +29,7 @@ export interface Config {
   forceModelPrefix?: boolean;
   routingStrategy?: string;
   apiKeys?: string[];
+  apiKeyEntries?: ApiKeyEntry[];
   ampcode?: AmpcodeConfig;
   geminiApiKeys?: GeminiKeyConfig[];
   codexApiKeys?: ProviderKeyConfig[];

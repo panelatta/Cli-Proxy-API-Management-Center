@@ -36,6 +36,7 @@ import type {
   VisualConfigValidationErrorCode,
   VisualConfigValidationErrors,
   VisualConfigValues,
+  VisualApiKeyEntry,
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
@@ -222,8 +223,8 @@ export function VisualConfigEditor({
     validationErrors?.['streaming.nonstreamKeepaliveInterval']
   );
 
-  const handleApiKeysTextChange = useCallback(
-    (apiKeysText: string) => onChange({ apiKeysText }),
+  const handleApiKeyEntriesChange = useCallback(
+    (apiKeyEntries: VisualApiKeyEntry[]) => onChange({ apiKeyEntries }),
     [onChange]
   );
   const handlePayloadDefaultRulesChange = useCallback(
@@ -440,7 +441,8 @@ export function VisualConfigEditor({
         220
       );
       const maxHeight = Math.max(window.innerHeight - top - viewportPadding, 160);
-      const isVisible = workspaceRect.bottom > stickyTop + 24 && anchorRect.top < window.innerHeight;
+      const isVisible =
+        workspaceRect.bottom > stickyTop + 24 && anchorRect.top < window.innerHeight;
 
       floatingElement.style.transform = `translate3d(${left}px, ${top}px, 0)`;
       floatingElement.style.width = `${width}px`;
@@ -748,9 +750,9 @@ export function VisualConfigEditor({
               />
               <div className={styles.subsection}>
                 <ApiKeysCardEditor
-                  value={values.apiKeysText}
+                  value={values.apiKeyEntries}
                   disabled={disabled}
-                  onChange={handleApiKeysTextChange}
+                  onChange={handleApiKeyEntriesChange}
                 />
               </div>
             </SectionStack>
@@ -944,9 +946,7 @@ export function VisualConfigEditor({
               />
               <ToggleRow
                 title={t('config_management.visual.sections.quota.antigravity_credits')}
-                description={t(
-                  'config_management.visual.sections.quota.antigravity_credits_desc'
-                )}
+                description={t('config_management.visual.sections.quota.antigravity_credits_desc')}
                 checked={values.quotaAntigravityCredits}
                 disabled={disabled}
                 onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}

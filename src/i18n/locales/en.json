@@ -1202,6 +1202,9 @@
         "add_title": "Add API Key",
         "input_label": "API Key",
         "input_placeholder": "Paste your API key",
+        "name_label": "Name",
+        "name_placeholder": "Optional label, e.g. Team A / Cursor",
+        "unnamed": "Unnamed API key",
         "input_hint": "This only modifies the local config file content, it will not sync to the API Key Management interface",
         "error_empty": "Please enter an API key",
         "error_invalid": "API key contains invalid characters"

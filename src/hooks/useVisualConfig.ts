@@ -8,60 +8,69 @@ import type {
   VisualConfigValues,
   VisualConfigValidationErrors,
   PayloadParamValidationErrorCode,
+  VisualApiKeyEntry,
 } from '@/types/visualConfig';
-import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
+import { DEFAULT_VISUAL_VALUES, makeClientId } from '@/types/visualConfig';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 }
 
-function extractApiKeyValue(raw: unknown): string | null {
+function extractApiKeyEntry(raw: unknown): VisualApiKeyEntry | null {
   if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    return trimmed ? trimmed : null;
+    const apiKey = raw.trim();
+    return apiKey ? { id: makeClientId(), apiKey, name: '' } : null;
   }
 
   const record = asRecord(raw);
   if (!record) return null;
 
   const candidates = [record['api-key'], record.apiKey, record.key, record.Key];
+  let apiKey = '';
   for (const candidate of candidates) {
     if (typeof candidate === 'string') {
-      const trimmed = candidate.trim();
-      if (trimmed) return trimmed;
+      apiKey = candidate.trim();
+      if (apiKey) break;
     }
   }
+  if (!apiKey) return null;
 
-  return null;
+  return {
+    id: makeClientId(),
+    apiKey,
+    name: typeof record.name === 'string' ? record.name.trim() : '',
+  };
 }
 
-function parseApiKeysText(raw: unknown): string {
-  if (!Array.isArray(raw)) return '';
-
-  const keys: string[] = [];
-  for (const item of raw) {
-    const key = extractApiKeyValue(item);
-    if (key) keys.push(key);
-  }
-  return keys.join('\n');
+function parseApiKeyEntries(raw: unknown): VisualApiKeyEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(extractApiKeyEntry).filter(Boolean) as VisualApiKeyEntry[];
 }
 
-function resolveApiKeysText(parsed: Record<string, unknown>): string {
+function resolveApiKeyEntries(parsed: Record<string, unknown>): VisualApiKeyEntry[] {
   if (Object.prototype.hasOwnProperty.call(parsed, 'api-keys')) {
-    return parseApiKeysText(parsed['api-keys']);
+    return parseApiKeyEntries(parsed['api-keys']);
   }
 
   const auth = asRecord(parsed.auth);
   const providers = asRecord(auth?.providers);
   const configApiKeyProvider = asRecord(providers?.['config-api-key']);
-  if (!configApiKeyProvider) return '';
+  if (!configApiKeyProvider) return [];
 
   if (Object.prototype.hasOwnProperty.call(configApiKeyProvider, 'api-key-entries')) {
-    return parseApiKeysText(configApiKeyProvider['api-key-entries']);
+    return parseApiKeyEntries(configApiKeyProvider['api-key-entries']);
   }
 
-  return parseApiKeysText(configApiKeyProvider['api-keys']);
+  return parseApiKeyEntries(configApiKeyProvider['api-keys']);
+}
+
+function areVisualApiKeyEntriesEqual(a: VisualApiKeyEntry[], b: VisualApiKeyEntry[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((entry, index) => {
+    const other = b[index];
+    return entry.apiKey.trim() === other.apiKey.trim() && entry.name.trim() === other.name.trim();
+  });
 }
 
 type YamlDocument = ReturnType<typeof parseDocument>;
@@ -596,8 +605,11 @@ function getNextDirtyFields(
   if (Object.prototype.hasOwnProperty.call(patch, 'authDir')) {
     updateDirty('authDir', nextValues.authDir === baselineValues.authDir);
   }
-  if (Object.prototype.hasOwnProperty.call(patch, 'apiKeysText')) {
-    updateDirty('apiKeysText', nextValues.apiKeysText === baselineValues.apiKeysText);
+  if (Object.prototype.hasOwnProperty.call(patch, 'apiKeyEntries')) {
+    updateDirty(
+      'apiKeyEntries',
+      areVisualApiKeyEntriesEqual(nextValues.apiKeyEntries, baselineValues.apiKeyEntries)
+    );
   }
   if (Object.prototype.hasOwnProperty.call(patch, 'debug')) {
     updateDirty('debug', nextValues.debug === baselineValues.debug);
@@ -834,7 +846,7 @@ export function useVisualConfig() {
               : '',
 
         authDir: typeof parsed['auth-dir'] === 'string' ? parsed['auth-dir'] : '',
-        apiKeysText: resolveApiKeysText(parsed),
+        apiKeyEntries: resolveApiKeyEntries(parsed),
 
         debug: Boolean(parsed.debug),
         commercialMode: Boolean(parsed['commercial-mode']),
@@ -938,12 +950,20 @@ export function useVisualConfig() {
         }
 
         setStringInDoc(doc, ['auth-dir'], values.authDir);
-        const apiKeys = values.apiKeysText
-          .split('\n')
-          .map((key) => key.trim())
-          .filter(Boolean);
-        if (apiKeys.length > 0) {
-          doc.setIn(['api-keys'], apiKeys);
+        const apiKeyEntries = values.apiKeyEntries
+          .map((entry) => ({ apiKey: entry.apiKey.trim(), name: entry.name.trim() }))
+          .filter((entry) => entry.apiKey !== '');
+        if (apiKeyEntries.length > 0) {
+          const shouldUseObjectEntries = apiKeyEntries.some((entry) => entry.name !== '');
+          doc.setIn(
+            ['api-keys'],
+            shouldUseObjectEntries
+              ? apiKeyEntries.map((entry) => ({
+                  'api-key': entry.apiKey,
+                  ...(entry.name ? { name: entry.name } : {}),
+                }))
+              : apiKeyEntries.map((entry) => entry.apiKey)
+          );
         } else if (docHas(doc, ['api-keys'])) {
           doc.deleteIn(['api-keys']);
         }

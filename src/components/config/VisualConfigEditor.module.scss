@@ -851,6 +851,17 @@
   }
 }
 
+.apiKeyEntryTitle {
+  overflow-wrap: anywhere;
+}
+
+.apiKeyEntrySubtitle {
+  overflow-wrap: anywhere;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
 @media (max-width: 900px) {
   .payloadRuleModelRow,
   .payloadRuleModelRowProtocolFirst,

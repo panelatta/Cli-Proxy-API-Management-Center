@@ -1201,6 +1201,9 @@
         "add_title": "Добавление API-ключа",
         "input_label": "API-ключ",
         "input_placeholder": "Вставьте API-ключ",
+        "name_label": "Name",
+        "name_placeholder": "Optional label, e.g. Team A / Cursor",
+        "unnamed": "Unnamed API key",
         "input_hint": "Меняет только содержимое локального файла конфигурации, не синхронизируется с интерфейсом управления API-ключами",
         "error_empty": "Введите API-ключ",
         "error_invalid": "API-ключ содержит недопустимые символы"

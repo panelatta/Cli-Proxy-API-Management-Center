@@ -1202,6 +1202,9 @@
         "add_title": "添加 API 密钥",
         "input_label": "API 密钥",
         "input_placeholder": "粘贴你的 API 密钥",
+        "name_label": "名称",
+        "name_placeholder": "可选标注，例如 Team A / Cursor",
+        "unnamed": "未命名 API 密钥",
         "input_hint": "此处仅修改本地配置文件内容，不会自动同步到 API 密钥管理接口",
         "error_empty": "请输入 API 密钥",
         "error_invalid": "API 密钥包含无效字符"
