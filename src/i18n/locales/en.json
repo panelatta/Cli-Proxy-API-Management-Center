@@ -1456,7 +1456,7 @@
     "chart_line_hint": "Show up to 9 model lines at once",
     "no_data": "No Data Available",
     "loading_error": "Loading Failed",
-    "api_endpoint": "API Endpoint",
+    "api_endpoint": "API / Key",
     "requests_count": "Request Count",
     "tokens_count": "Token Count",
     "models": "Model Statistics",

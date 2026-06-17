@@ -1482,7 +1482,7 @@
     "chart_line_hint": "最多同時顯示 9 條模型曲線",
     "no_data": "暫無資料",
     "loading_error": "載入失敗",
-    "api_endpoint": "API 端點",
+    "api_endpoint": "API / 金鑰",
     "requests_count": "請求次數",
     "tokens_count": "Token 數量",
     "models": "模型統計",

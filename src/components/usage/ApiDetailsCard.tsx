@@ -19,13 +19,13 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
   const [sortKey, setSortKey] = useState<ApiSortKey>('requests');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-  const toggleExpand = (endpoint: string) => {
+  const toggleExpand = (apiId: string) => {
     setExpandedApis((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(endpoint)) {
-        newSet.delete(endpoint);
+      if (newSet.has(apiId)) {
+        newSet.delete(apiId);
       } else {
-        newSet.add(endpoint);
+        newSet.add(apiId);
       }
       return newSet;
     });
@@ -45,18 +45,22 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
     const dir = sortDir === 'asc' ? 1 : -1;
     list.sort((a, b) => {
       switch (sortKey) {
-        case 'endpoint': return dir * a.endpoint.localeCompare(b.endpoint);
-        case 'requests': return dir * (a.totalRequests - b.totalRequests);
-        case 'tokens': return dir * (a.totalTokens - b.totalTokens);
-        case 'cost': return dir * (a.totalCost - b.totalCost);
-        default: return 0;
+        case 'endpoint':
+          return dir * a.endpoint.localeCompare(b.endpoint);
+        case 'requests':
+          return dir * (a.totalRequests - b.totalRequests);
+        case 'tokens':
+          return dir * (a.totalTokens - b.totalTokens);
+        case 'cost':
+          return dir * (a.totalCost - b.totalCost);
+        default:
+          return 0;
       }
     });
     return list;
   }, [apiStats, sortKey, sortDir]);
 
-  const arrow = (key: ApiSortKey) =>
-    sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  const arrow = (key: ApiSortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
     <Card title={t('usage_stats.api_details')} className={styles.detailsFixedCard}>
@@ -65,12 +69,14 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
       ) : sorted.length > 0 ? (
         <>
           <div className={styles.apiSortBar}>
-            {([
-              ['endpoint', 'usage_stats.api_endpoint'],
-              ['requests', 'usage_stats.requests_count'],
-              ['tokens', 'usage_stats.tokens_count'],
-              ...(hasPrices ? [['cost', 'usage_stats.total_cost']] : []),
-            ] as [ApiSortKey, string][]).map(([key, labelKey]) => (
+            {(
+              [
+                ['endpoint', 'usage_stats.api_endpoint'],
+                ['requests', 'usage_stats.requests_count'],
+                ['tokens', 'usage_stats.tokens_count'],
+                ...(hasPrices ? [['cost', 'usage_stats.total_cost']] : []),
+              ] as [ApiSortKey, string][]
+            ).map(([key, labelKey]) => (
               <button
                 key={key}
                 type="button"
@@ -78,22 +84,23 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                 className={`${styles.apiSortBtn} ${sortKey === key ? styles.apiSortBtnActive : ''}`}
                 onClick={() => handleSort(key)}
               >
-                {t(labelKey)}{arrow(key)}
+                {t(labelKey)}
+                {arrow(key)}
               </button>
             ))}
           </div>
           <div className={styles.detailsScroll}>
             <div className={styles.apiList}>
               {sorted.map((api, index) => {
-                const isExpanded = expandedApis.has(api.endpoint);
+                const isExpanded = expandedApis.has(api.id);
                 const panelId = `api-models-${index}`;
 
                 return (
-                  <div key={api.endpoint} className={styles.apiItem}>
+                  <div key={api.id} className={styles.apiItem}>
                     <button
                       type="button"
                       className={styles.apiHeader}
-                      onClick={() => toggleExpand(api.endpoint)}
+                      onClick={() => toggleExpand(api.id)}
                       aria-expanded={isExpanded}
                       aria-controls={panelId}
                     >
@@ -103,11 +110,18 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                           <span className={styles.apiBadge}>
                             <span className={styles.requestCountCell}>
                               <span>
-                                {t('usage_stats.requests_count')}: {api.totalRequests.toLocaleString()}
+                                {t('usage_stats.requests_count')}:{' '}
+                                {api.totalRequests.toLocaleString()}
                               </span>
                               <span className={styles.requestBreakdown}>
-                                (<span className={styles.statSuccess}>{api.successCount.toLocaleString()}</span>{' '}
-                                <span className={styles.statFailure}>{api.failureCount.toLocaleString()}</span>)
+                                (
+                                <span className={styles.statSuccess}>
+                                  {api.successCount.toLocaleString()}
+                                </span>{' '}
+                                <span className={styles.statFailure}>
+                                  {api.failureCount.toLocaleString()}
+                                </span>
+                                )
                               </span>
                             </span>
                           </span>
@@ -121,9 +135,7 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                           )}
                         </div>
                       </div>
-                      <span className={styles.expandIcon}>
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
+                      <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
                     </button>
                     {isExpanded && (
                       <div id={panelId} className={styles.apiModels}>
@@ -134,12 +146,20 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                               <span className={styles.requestCountCell}>
                                 <span>{stats.requests.toLocaleString()}</span>
                                 <span className={styles.requestBreakdown}>
-                                  (<span className={styles.statSuccess}>{stats.successCount.toLocaleString()}</span>{' '}
-                                  <span className={styles.statFailure}>{stats.failureCount.toLocaleString()}</span>)
+                                  (
+                                  <span className={styles.statSuccess}>
+                                    {stats.successCount.toLocaleString()}
+                                  </span>{' '}
+                                  <span className={styles.statFailure}>
+                                    {stats.failureCount.toLocaleString()}
+                                  </span>
+                                  )
                                 </span>
                               </span>
                             </span>
-                            <span className={styles.modelStat}>{formatCompactNumber(stats.tokens)}</span>
+                            <span className={styles.modelStat}>
+                              {formatCompactNumber(stats.tokens)}
+                            </span>
                           </div>
                         ))}
                       </div>

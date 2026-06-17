@@ -79,6 +79,7 @@ export interface UsageDetailWithEndpoint extends UsageDetail {
 }
 
 export interface ApiStats {
+  id: string;
   endpoint: string;
   totalRequests: number;
   successCount: number;
@@ -552,11 +553,10 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index:
-            (detailRaw?.auth_index ??
-              detailRaw?.authIndex ??
-              detailRaw?.AuthIndex ??
-              null) as UsageDetail['auth_index'],
+          auth_index: (detailRaw?.auth_index ??
+            detailRaw?.authIndex ??
+            detailRaw?.AuthIndex ??
+            null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
           tokens: tokensRaw as unknown as UsageDetail['tokens'],
           failed: detailRaw.failed === true,
@@ -629,11 +629,10 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index:
-            (detailRaw?.auth_index ??
-              detailRaw?.authIndex ??
-              detailRaw?.AuthIndex ??
-              null) as UsageDetail['auth_index'],
+          auth_index: (detailRaw?.auth_index ??
+            detailRaw?.authIndex ??
+            detailRaw?.AuthIndex ??
+            null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
           tokens: tokensRaw as unknown as UsageDetail['tokens'],
           failed: detailRaw.failed === true,
@@ -891,7 +890,8 @@ export function saveModelPrices(prices: Record<string, ModelPrice>): void {
  */
 export function getApiStats(
   usageData: unknown,
-  modelPrices: Record<string, ModelPrice>
+  modelPrices: Record<string, ModelPrice>,
+  apiDisplayNames: Record<string, string> = {}
 ): ApiStats[] {
   const apis = getApisRecord(usageData);
   if (!apis) return [];
@@ -961,8 +961,11 @@ export function getApiStats(
       ? Number(apiData.failure_count) || 0
       : derivedFailureCount;
 
+    const displayName = apiDisplayNames[endpoint]?.trim();
+
     result.push({
-      endpoint: maskUsageSensitiveValue(endpoint) || endpoint,
+      id: endpoint,
+      endpoint: displayName || maskUsageSensitiveValue(endpoint) || endpoint,
       totalRequests: Number(apiData.total_requests) || 0,
       successCount,
       failureCount,

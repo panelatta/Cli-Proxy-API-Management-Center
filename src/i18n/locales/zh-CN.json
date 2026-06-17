@@ -1456,7 +1456,7 @@
     "chart_line_hint": "最多同时显示 9 条模型曲线",
     "no_data": "暂无数据",
     "loading_error": "加载失败",
-    "api_endpoint": "API端点",
+    "api_endpoint": "API / 密钥",
     "requests_count": "请求次数",
     "tokens_count": "Token数量",
     "models": "模型统计",
