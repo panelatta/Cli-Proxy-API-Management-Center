@@ -7,22 +7,27 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiClientConfig, ApiError } from '@/types';
 import {
   BUILD_DATE_HEADER_KEYS,
+  CPA_BUILD_DATE_HEADER_KEYS,
+  CPA_SUPPORT_PLUGIN_HEADER_KEYS,
+  CPA_VERSION_HEADER_KEYS,
   REQUEST_TIMEOUT_MS,
-  VERSION_HEADER_KEYS
+  VERSION_HEADER_KEYS,
 } from '@/utils/constants';
 import { computeApiUrl } from '@/utils/connection';
+import { parseApiErrorResponse } from './apiError';
 
 class ApiClient {
   private instance: AxiosInstance;
   private apiBase: string = '';
   private managementKey: string = '';
+  private connectionRevision = 0;
 
   constructor() {
     this.instance = axios.create({
       timeout: REQUEST_TIMEOUT_MS,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
 
     this.setupInterceptors();
@@ -32,7 +37,11 @@ class ApiClient {
    * 设置 API 配置
    */
   setConfig(config: ApiClientConfig): void {
-    this.apiBase = computeApiUrl(config.apiBase);
+    const apiBase = computeApiUrl(config.apiBase);
+    if (apiBase !== this.apiBase || config.managementKey !== this.managementKey) {
+      this.connectionRevision += 1;
+    }
+    this.apiBase = apiBase;
     this.managementKey = config.managementKey;
 
     if (config.timeout) {
@@ -42,16 +51,20 @@ class ApiClient {
     }
   }
 
-  private readHeader(
-    headers: Record<string, unknown> | undefined,
-    keys: string[]
-  ): string | null {
+  /** Guards read/modify/write operations across connection changes, including ABA switches. */
+  getConnectionRevision(): number {
+    return this.connectionRevision;
+  }
+
+  private readHeader(headers: Record<string, unknown> | undefined, keys: string[]): string | null {
     if (!headers) return null;
 
     const normalizeValue = (value: unknown): string | null => {
       if (value === undefined || value === null) return null;
       if (Array.isArray(value)) {
-        const first = value.find((entry) => entry !== undefined && entry !== null && String(entry).trim());
+        const first = value.find(
+          (entry) => entry !== undefined && entry !== null && String(entry).trim()
+        );
         return first !== undefined ? String(first) : null;
       }
       const text = String(value);
@@ -81,6 +94,19 @@ class ApiClient {
     return null;
   }
 
+  private readBooleanHeader(
+    headers: Record<string, unknown> | undefined,
+    keys: string[]
+  ): boolean | null {
+    const value = this.readHeader(headers, keys);
+    if (value === null) return null;
+
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+    return null;
+  }
+
   /**
    * 设置请求/响应拦截器
    */
@@ -90,10 +116,6 @@ class ApiClient {
       (config) => {
         // 设置 baseURL
         config.baseURL = this.apiBase;
-        if (config.url) {
-          // Normalize deprecated Gemini endpoint to the current path.
-          config.url = config.url.replace(/\/generative-language-api-key\b/g, '/gemini-api-key');
-        }
 
         // 添加认证头
         if (this.managementKey) {
@@ -109,14 +131,24 @@ class ApiClient {
     this.instance.interceptors.response.use(
       (response) => {
         const headers = response.headers as Record<string, string | undefined>;
-        const version = this.readHeader(headers, VERSION_HEADER_KEYS);
-        const buildDate = this.readHeader(headers, BUILD_DATE_HEADER_KEYS);
+        const cpaVersion = this.readHeader(headers, CPA_VERSION_HEADER_KEYS);
+        const cpaBuildDate = this.readHeader(headers, CPA_BUILD_DATE_HEADER_KEYS);
+        const version = cpaVersion || this.readHeader(headers, VERSION_HEADER_KEYS);
+        const buildDate = cpaBuildDate || this.readHeader(headers, BUILD_DATE_HEADER_KEYS);
+        const supportsPlugin = this.readBooleanHeader(headers, CPA_SUPPORT_PLUGIN_HEADER_KEYS);
 
         // 触发版本更新事件（后续通过 store 处理）
         if (version || buildDate) {
           window.dispatchEvent(
             new CustomEvent('server-version-update', {
-              detail: { version: version || null, buildDate: buildDate || null }
+              detail: { version: version || null, buildDate: buildDate || null },
+            })
+          );
+        }
+        if (supportsPlugin !== null) {
+          window.dispatchEvent(
+            new CustomEvent('server-plugin-support-update', {
+              detail: { supportsPlugin },
             })
           );
         }
@@ -131,25 +163,14 @@ class ApiClient {
    * 错误处理
    */
   private handleError(error: unknown): ApiError {
-    const isRecord = (value: unknown): value is Record<string, unknown> =>
-      value !== null && typeof value === 'object';
-
     if (axios.isAxiosError(error)) {
       const responseData: unknown = error.response?.data;
-      const responseRecord = isRecord(responseData) ? responseData : null;
-      const errorValue = responseRecord?.error;
-      const message =
-        typeof errorValue === 'string'
-          ? errorValue
-          : isRecord(errorValue) && typeof errorValue.message === 'string'
-            ? errorValue.message
-            : typeof responseRecord?.message === 'string'
-              ? responseRecord.message
-              : error.message || 'Request failed';
-      const apiError = new Error(message) as ApiError;
+      const parsedError = parseApiErrorResponse(responseData, error.message);
+      const apiError = new Error(parsedError.message) as ApiError;
       apiError.name = 'ApiError';
       apiError.status = error.response?.status;
       apiError.code = error.code;
+      apiError.apiCode = parsedError.apiCode;
       apiError.details = responseData;
       apiError.data = responseData;
 
@@ -162,7 +183,11 @@ class ApiClient {
     }
 
     const fallbackMessage =
-      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error occurred';
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Unknown error occurred';
     const fallback = new Error(fallbackMessage) as ApiError;
     fallback.name = 'ApiError';
     return fallback;
@@ -227,17 +252,10 @@ class ApiClient {
       ...config,
       headers: {
         ...(config?.headers || {}),
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
-  }
-
-  /**
-   * 保留对 axios.request 的访问，便于下载等场景
-   */
-  async requestRaw(config: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.instance.request(config);
   }
 }
 

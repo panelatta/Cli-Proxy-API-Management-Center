@@ -6,7 +6,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties
+  type CSSProperties,
+  type AriaAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { IconChevronDown } from './icons';
@@ -27,7 +28,9 @@ interface SelectProps {
   ariaLabel?: string;
   ariaLabelledBy?: string;
   ariaDescribedBy?: string;
+  ariaInvalid?: AriaAttributes['aria-invalid'];
   fullWidth?: boolean;
+  size?: 'sm' | 'md';
   id?: string;
 }
 
@@ -50,8 +53,7 @@ const resolveDropdownStyle = (element: HTMLElement): CSSProperties => {
   );
   const spaceBelow = viewportHeight - rect.bottom - VIEWPORT_MARGIN - DROPDOWN_OFFSET;
   const spaceAbove = rect.top - VIEWPORT_MARGIN - DROPDOWN_OFFSET;
-  const direction =
-    spaceBelow >= DROPDOWN_MAX_HEIGHT || spaceBelow >= spaceAbove ? 'down' : 'up';
+  const direction = spaceBelow >= DROPDOWN_MAX_HEIGHT || spaceBelow >= spaceAbove ? 'down' : 'up';
   const maxHeight = Math.max(
     0,
     Math.min(DROPDOWN_MAX_HEIGHT, direction === 'down' ? spaceBelow : spaceAbove)
@@ -64,7 +66,7 @@ const resolveDropdownStyle = (element: HTMLElement): CSSProperties => {
         left,
         width,
         maxHeight,
-        zIndex: DROPDOWN_Z_INDEX
+        zIndex: DROPDOWN_Z_INDEX,
       }
     : {
         position: 'fixed',
@@ -72,7 +74,7 @@ const resolveDropdownStyle = (element: HTMLElement): CSSProperties => {
         left,
         width,
         maxHeight,
-        zIndex: DROPDOWN_Z_INDEX
+        zIndex: DROPDOWN_Z_INDEX,
       };
 };
 
@@ -86,7 +88,9 @@ export function Select({
   ariaLabel,
   ariaLabelledBy,
   ariaDescribedBy,
+  ariaInvalid,
   fullWidth = true,
+  size = 'md',
   id,
 }: SelectProps) {
   const generatedId = useId();
@@ -95,6 +99,7 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties | null>(null);
@@ -167,9 +172,18 @@ export function Select({
     };
   }, [isOpen, scheduleDropdownStyleUpdate, updateDropdownStyle]);
 
-  const selectedIndex = useMemo(() => options.findIndex((option) => option.value === value), [options, value]);
+  const selectedIndex = useMemo(
+    () => options.findIndex((option) => option.value === value),
+    [options, value]
+  );
   const resolvedHighlightedIndex =
-    highlightedIndex >= 0 ? highlightedIndex : selectedIndex >= 0 ? selectedIndex : options.length > 0 ? 0 : -1;
+    highlightedIndex >= 0
+      ? highlightedIndex
+      : selectedIndex >= 0
+        ? selectedIndex
+        : options.length > 0
+          ? 0
+          : -1;
   const selected = selectedIndex >= 0 ? options[selectedIndex] : undefined;
   const displayText = selected?.label ?? placeholder ?? '';
   const isPlaceholder = !selected && placeholder;
@@ -181,6 +195,7 @@ export function Select({
       onChange(nextOption.value);
       setOpen(false);
       setHighlightedIndex(nextIndex);
+      triggerRef.current?.focus({ preventScroll: true });
     },
     [onChange, options]
   );
@@ -240,7 +255,9 @@ export function Select({
         case 'Escape':
           if (!isOpen) return;
           event.preventDefault();
+          event.stopPropagation();
           setOpen(false);
+          triggerRef.current?.focus({ preventScroll: true });
           return;
         case 'Tab':
           if (isOpen) setOpen(false);
@@ -254,43 +271,43 @@ export function Select({
 
   useEffect(() => {
     if (!isOpen || resolvedHighlightedIndex < 0) return;
-    const highlightedOption = document.getElementById(`${selectId}-option-${resolvedHighlightedIndex}`);
+    const highlightedOption = document.getElementById(
+      `${selectId}-option-${resolvedHighlightedIndex}`
+    );
     highlightedOption?.scrollIntoView({ block: 'nearest' });
   }, [isOpen, resolvedHighlightedIndex, selectId]);
 
   const dropdown =
-    isOpen && dropdownStyle
-      ? (
-          <div
-            ref={dropdownRef}
-            className={styles.dropdown}
-            id={listboxId}
-            role="listbox"
-            aria-label={ariaLabel}
-            style={dropdownStyle}
-          >
-            {options.map((opt, index) => {
-              const active = opt.value === value;
-              const highlighted = index === resolvedHighlightedIndex;
-              return (
-                <button
-                  key={opt.value}
-                  id={`${selectId}-option-${index}`}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  className={`${styles.option} ${active ? styles.optionActive : ''} ${highlighted ? styles.optionHighlighted : ''}`.trim()}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  onKeyDown={handleKeyDown}
-                  onClick={() => commitSelection(index)}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        )
-      : null;
+    isOpen && dropdownStyle ? (
+      <div
+        ref={dropdownRef}
+        className={styles.dropdown}
+        id={listboxId}
+        role="listbox"
+        aria-label={ariaLabel}
+        style={dropdownStyle}
+      >
+        {options.map((opt, index) => {
+          const active = opt.value === value;
+          const highlighted = index === resolvedHighlightedIndex;
+          return (
+            <button
+              key={opt.value}
+              id={`${selectId}-option-${index}`}
+              type="button"
+              role="option"
+              aria-selected={active}
+              className={`${styles.option} ${active ? styles.optionActive : ''} ${highlighted ? styles.optionHighlighted : ''}`.trim()}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onKeyDown={handleKeyDown}
+              onClick={() => commitSelection(index)}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    ) : null;
 
   return (
     <>
@@ -300,8 +317,9 @@ export function Select({
       >
         <button
           id={selectId}
+          ref={triggerRef}
           type="button"
-          className={styles.trigger}
+          className={`${styles.trigger} ${size === 'sm' ? styles.triggerSm : ''}`.trim()}
           onClick={disabled ? undefined : () => setOpen((prev) => !prev)}
           onKeyDown={handleKeyDown}
           aria-haspopup="listbox"
@@ -315,6 +333,7 @@ export function Select({
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
           aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           disabled={disabled}
         >
           <span className={`${styles.triggerText} ${isPlaceholder ? styles.placeholder : ''}`}>
@@ -325,7 +344,8 @@ export function Select({
           </span>
         </button>
       </div>
-      {dropdown && (typeof document === 'undefined' ? dropdown : createPortal(dropdown, document.body))}
+      {dropdown &&
+        (typeof document === 'undefined' ? dropdown : createPortal(dropdown, document.body))}
     </>
   );
 }

@@ -14,7 +14,8 @@ export const normalizeAccessApiKeyEntry = (item: unknown): ApiKeyEntry | null =>
   const trimmed = String(apiKey ?? '').trim();
   if (!trimmed) return null;
   const name = record ? String(record.name ?? '').trim() : '';
-  return name ? { apiKey: trimmed, name } : { apiKey: trimmed };
+  const forceModel = record ? String(record['force-model'] ?? record.forceModel ?? '').trim() : '';
+  return { apiKey: trimmed, ...(name ? { name } : {}), ...(forceModel ? { forceModel } : {}) };
 };
 
 export const normalizeAccessApiKeyEntries = (input: unknown): ApiKeyEntry[] => {
@@ -28,5 +29,6 @@ export const serializeAccessApiKeyEntry = (entry: ApiKeyEntry) => {
   return {
     'api-key': apiKey,
     ...(name ? { name } : {}),
+    ...(entry.forceModel ? { 'force-model': entry.forceModel } : {}),
   };
 };

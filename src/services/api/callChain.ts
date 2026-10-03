@@ -150,15 +150,15 @@ function compactParams(params: CallChainExportQuery): CallChainExportQuery {
 
 export const callChainApi = {
   fetchExport: (params: CallChainExportQuery): Promise<CallChainExportPayload> =>
-    apiClient.get('/request-call-chain/export', {
+    apiClient.get('/observability/logs/call-chain/export', {
       params: compactParams(params),
-      timeout: CALL_CHAIN_EXPORT_TIMEOUT_MS
+      timeout: CALL_CHAIN_EXPORT_TIMEOUT_MS,
     }),
 
   downloadExport: (params: CallChainExportQuery) =>
-    apiClient.getRaw('/request-call-chain/export', {
+    apiClient.getRaw('/observability/logs/call-chain/export', {
       params: compactParams(params),
       responseType: 'blob',
-      timeout: CALL_CHAIN_EXPORT_TIMEOUT_MS
+      timeout: CALL_CHAIN_EXPORT_TIMEOUT_MS,
     }),
 };

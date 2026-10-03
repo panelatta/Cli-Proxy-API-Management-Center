@@ -9,7 +9,6 @@ import type {
   ProviderKeyConfig,
   OpenAIProviderConfig,
 } from './provider';
-import type { AmpcodeConfig } from './ampcode';
 
 export interface QuotaExceededConfig {
   switchProject?: boolean;
@@ -18,6 +17,7 @@ export interface QuotaExceededConfig {
 }
 
 export interface Config {
+  providerGroups?: Record<string, unknown>;
   debug?: boolean;
   proxyUrl?: string;
   requestRetry?: number;
@@ -30,9 +30,11 @@ export interface Config {
   routingStrategy?: string;
   apiKeys?: string[];
   apiKeyEntries?: ApiKeyEntry[];
-  ampcode?: AmpcodeConfig;
   geminiApiKeys?: GeminiKeyConfig[];
+  interactionsApiKeys?: GeminiKeyConfig[];
   codexApiKeys?: ProviderKeyConfig[];
+  metaApiKeys?: ProviderKeyConfig[];
+  xaiApiKeys?: ProviderKeyConfig[];
   claudeApiKeys?: ProviderKeyConfig[];
   vertexApiKeys?: ProviderKeyConfig[];
   openaiCompatibility?: OpenAIProviderConfig[];
@@ -52,15 +54,12 @@ export type RawConfigSection =
   | 'force-model-prefix'
   | 'routing/strategy'
   | 'api-keys'
-  | 'ampcode'
   | 'gemini-api-key'
+  | 'interactions-api-key'
   | 'codex-api-key'
+  | 'meta-api-key'
+  | 'xai-api-key'
   | 'claude-api-key'
   | 'vertex-api-key'
   | 'openai-compatibility'
   | 'oauth-excluded-models';
-
-export interface ConfigCache {
-  data: Config;
-  timestamp: number;
-}

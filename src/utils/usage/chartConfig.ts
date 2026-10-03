@@ -13,7 +13,7 @@ export const sparklineOptions: ChartOptions<'line'> = {
   maintainAspectRatio: false,
   plugins: { legend: { display: false }, tooltip: { enabled: false } },
   scales: { x: { display: false }, y: { display: false } },
-  elements: { line: { tension: 0.45 }, point: { radius: 0 } }
+  elements: { line: { tension: 0.45 }, point: { radius: 0 } },
 };
 
 export interface ChartConfigOptions {
@@ -30,7 +30,7 @@ export function buildChartOptions({
   period,
   labels,
   isDark,
-  isMobile
+  isMobile,
 }: ChartConfigOptions): ChartOptions<'line'> {
   const pointRadius = isMobile && period === 'hour' ? 0 : isMobile ? 2 : 4;
   const tickFontSize = isMobile ? 10 : 12;
@@ -48,7 +48,7 @@ export function buildChartOptions({
     maintainAspectRatio: false,
     interaction: {
       mode: 'index',
-      intersect: false
+      intersect: false,
     },
     plugins: {
       legend: { display: false },
@@ -60,17 +60,17 @@ export function buildChartOptions({
         borderWidth: 1,
         padding: 10,
         displayColors: true,
-        usePointStyle: true
-      }
+        usePointStyle: true,
+      },
     },
     scales: {
       x: {
         grid: {
           color: gridColor,
-          drawTicks: false
+          drawTicks: false,
         },
         border: {
-          color: axisBorderColor
+          color: axisBorderColor,
         },
         ticks: {
           color: tickColor,
@@ -82,7 +82,11 @@ export function buildChartOptions({
           callback: (value) => {
             const index = typeof value === 'number' ? value : Number(value);
             const raw =
-              Number.isFinite(index) && labels[index] ? labels[index] : typeof value === 'string' ? value : '';
+              Number.isFinite(index) && labels[index]
+                ? labels[index]
+                : typeof value === 'string'
+                  ? value
+                  : '';
 
             if (period === 'hour') {
               const [md, time] = raw.split(' ');
@@ -100,34 +104,34 @@ export function buildChartOptions({
               }
             }
             return raw;
-          }
-        }
+          },
+        },
       },
       y: {
         beginAtZero: true,
         grid: {
-          color: gridColor
+          color: gridColor,
         },
         border: {
-          color: axisBorderColor
+          color: axisBorderColor,
         },
         ticks: {
           color: tickColor,
-          font: { size: tickFontSize }
-        }
-      }
+          font: { size: tickFontSize },
+        },
+      },
     },
     elements: {
       line: {
         tension: 0.35,
-        borderWidth: isMobile ? 1.5 : 2
+        borderWidth: isMobile ? 1.5 : 2,
       },
       point: {
         borderWidth: 2,
         radius: pointRadius,
-        hoverRadius: 4
-      }
-    }
+        hoverRadius: 4,
+      },
+    },
   };
 }
 

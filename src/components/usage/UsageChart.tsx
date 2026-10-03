@@ -26,7 +26,7 @@ export function UsageChart({
   chartOptions,
   loading,
   isMobile,
-  emptyText
+  emptyText,
 }: UsageChartProps) {
   const { t } = useTranslation();
 
@@ -63,7 +63,10 @@ export function UsageChart({
                 className={styles.legendItem}
                 title={dataset.label}
               >
-                <span className={styles.legendDot} style={{ backgroundColor: dataset.borderColor }} />
+                <span
+                  className={styles.legendDot}
+                  style={{ backgroundColor: dataset.borderColor }}
+                />
                 <span className={styles.legendLabel}>{dataset.label}</span>
               </div>
             ))}

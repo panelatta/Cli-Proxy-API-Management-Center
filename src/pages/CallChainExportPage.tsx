@@ -384,7 +384,7 @@ export function CallChainExportPage() {
   const [error, setError] = useState('');
 
   const disableControls = connectionStatus !== 'connected';
-  const sessions = payload?.sessions ?? [];
+  const sessions = useMemo(() => payload?.sessions ?? [], [payload]);
   const selectedSession = useMemo(
     () => sessions.find((session) => session.id === selectedSessionId) ?? null,
     [sessions, selectedSessionId]
@@ -470,7 +470,7 @@ export function CallChainExportPage() {
         await configApi.updateRequestLog(value);
         updateConfigValue('request-log', value);
       }
-      await fetchConfig(undefined, true);
+      await fetchConfig(true);
       showNotification(t('notification.update_success', { defaultValue: '更新成功' }), 'success');
     } catch (err: unknown) {
       const message = getErrorMessage(err);

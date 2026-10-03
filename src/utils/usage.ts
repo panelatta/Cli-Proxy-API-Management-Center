@@ -1237,9 +1237,7 @@ export interface ChartDataset {
   data: number[];
   borderColor: string;
   backgroundColor:
-    | string
-    | CanvasGradient
-    | ((context: ScriptableContext<'line'>) => string | CanvasGradient);
+    string | CanvasGradient | ((context: ScriptableContext<'line'>) => string | CanvasGradient);
   pointBackgroundColor?: string;
   pointBorderColor?: string;
   fill: boolean;

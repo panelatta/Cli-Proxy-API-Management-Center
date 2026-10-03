@@ -3,7 +3,12 @@ export { useUsageData } from './hooks/useUsageData';
 export type { UsagePayload, UseUsageDataReturn } from './hooks/useUsageData';
 
 export { useSparklines } from './hooks/useSparklines';
-export type { SparklineData, SparklineBundle, UseSparklinesOptions, UseSparklinesReturn } from './hooks/useSparklines';
+export type {
+  SparklineData,
+  SparklineBundle,
+  UseSparklinesOptions,
+  UseSparklinesReturn,
+} from './hooks/useSparklines';
 
 export { useChartData } from './hooks/useChartData';
 export type { UseChartDataOptions, UseChartDataReturn } from './hooks/useChartData';

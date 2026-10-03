@@ -65,7 +65,7 @@ export function useUsageData(): UseUsageDataReturn {
       const filename = `usage-export-${safeTimestamp.replace(/[:.]/g, '-')}.json`;
       downloadBlob({
         filename,
-        blob: new Blob([JSON.stringify(data ?? {}, null, 2)], { type: 'application/json' })
+        blob: new Blob([JSON.stringify(data ?? {}, null, 2)], { type: 'application/json' }),
       });
       showNotification(t('usage_stats.export_success'), 'success');
     } catch (err: unknown) {
@@ -105,7 +105,7 @@ export function useUsageData(): UseUsageDataReturn {
           added: result?.added ?? 0,
           skipped: result?.skipped ?? 0,
           total: result?.total_requests ?? 0,
-          failed: result?.failed_requests ?? 0
+          failed: result?.failed_requests ?? 0,
         }),
         'success'
       );
@@ -151,6 +151,6 @@ export function useUsageData(): UseUsageDataReturn {
     handleImportChange,
     importInputRef,
     exporting,
-    importing
+    importing,
   };
 }

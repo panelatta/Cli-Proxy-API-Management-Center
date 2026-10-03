@@ -13,7 +13,7 @@ export interface SparklineData {
       tension: number;
       pointRadius: number;
       borderWidth: number;
-    }
+    },
   ];
 }
 
@@ -35,7 +35,11 @@ export interface UseSparklinesReturn {
   costSparkline: SparklineBundle | null;
 }
 
-export function useSparklines({ usage, loading, nowMs }: UseSparklinesOptions): UseSparklinesReturn {
+export function useSparklines({
+  usage,
+  loading,
+  nowMs,
+}: UseSparklinesOptions): UseSparklinesReturn {
   const lastHourSeries = useMemo(() => {
     if (!usage) return { labels: [], requests: [], tokens: [] };
     if (!Number.isFinite(nowMs) || nowMs <= 0) {
@@ -96,10 +100,10 @@ export function useSparklines({ usage, loading, nowMs }: UseSparklinesOptions): 
               fill: true,
               tension: 0.45,
               pointRadius: 0,
-              borderWidth: 2
-            }
-          ]
-        }
+              borderWidth: 2,
+            },
+          ],
+        },
       };
     },
     [loading]
@@ -160,6 +164,6 @@ export function useSparklines({ usage, loading, nowMs }: UseSparklinesOptions): 
     tokensSparkline,
     rpmSparkline,
     tpmSparkline,
-    costSparkline
+    costSparkline,
   };
 }

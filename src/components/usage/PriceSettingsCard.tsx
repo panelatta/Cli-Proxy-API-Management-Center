@@ -17,7 +17,7 @@ export interface PriceSettingsCardProps {
 export function PriceSettingsCard({
   modelNames,
   modelPrices,
-  onPricesChange
+  onPricesChange,
 }: PriceSettingsCardProps) {
   const { t } = useTranslation();
 
@@ -87,7 +87,7 @@ export function PriceSettingsCard({
   const options = useMemo(
     () => [
       { value: '', label: t('usage_stats.model_price_select_placeholder') },
-      ...modelNames.map((name) => ({ value: name, label: name }))
+      ...modelNames.map((name) => ({ value: name, label: name })),
     ],
     [modelNames, t]
   );

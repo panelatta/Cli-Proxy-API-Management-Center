@@ -150,12 +150,8 @@ export function CredentialStatsCard({
                         <span>{formatCompactNumber(row.total)}</span>
                         <span className={styles.requestBreakdown}>
                           (
-                          <span className={styles.statSuccess}>
-                            {row.success.toLocaleString()}
-                          </span>{' '}
-                          <span className={styles.statFailure}>
-                            {row.failure.toLocaleString()}
-                          </span>
+                          <span className={styles.statSuccess}>{row.success.toLocaleString()}</span>{' '}
+                          <span className={styles.statFailure}>{row.failure.toLocaleString()}</span>
                           )
                         </span>
                       </span>

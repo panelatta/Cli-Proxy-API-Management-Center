@@ -127,63 +127,57 @@ export function RequestEventsDetailsCard({
   const rows = useMemo<RequestEventRow[]>(() => {
     const details = collectUsageDetails(usage);
 
-    const baseRows = details
-      .map((detail, index) => {
-        const timestamp = detail.timestamp;
-        const timestampMs =
-          typeof detail.__timestampMs === 'number' && detail.__timestampMs > 0
-            ? detail.__timestampMs
-            : parseTimestampMs(timestamp);
-        const date = Number.isNaN(timestampMs) ? null : new Date(timestampMs);
-        const sourceRaw = String(detail.source ?? '').trim();
-        const authIndexRaw = detail.auth_index as unknown;
-        const authIndex =
-          authIndexRaw === null || authIndexRaw === undefined || authIndexRaw === ''
-            ? '-'
-            : String(authIndexRaw);
-        const sourceInfo = resolveSourceDisplay(
-          sourceRaw,
-          authIndexRaw,
-          sourceInfoMap,
-          authFileMap
-        );
-        const source = sourceInfo.displayName;
-        const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
-        const sourceType = sourceInfo.type;
-        const model = String(detail.__modelName ?? '').trim() || '-';
-        const inputTokens = Math.max(toNumber(detail.tokens?.input_tokens), 0);
-        const outputTokens = Math.max(toNumber(detail.tokens?.output_tokens), 0);
-        const reasoningTokens = Math.max(toNumber(detail.tokens?.reasoning_tokens), 0);
-        const cachedTokens = Math.max(
-          Math.max(toNumber(detail.tokens?.cached_tokens), 0),
-          Math.max(toNumber(detail.tokens?.cache_tokens), 0)
-        );
-        const totalTokens = Math.max(
-          toNumber(detail.tokens?.total_tokens),
-          extractTotalTokens(detail)
-        );
-        const latencyMs = extractLatencyMs(detail);
+    const baseRows = details.map((detail, index) => {
+      const timestamp = detail.timestamp;
+      const timestampMs =
+        typeof detail.__timestampMs === 'number' && detail.__timestampMs > 0
+          ? detail.__timestampMs
+          : parseTimestampMs(timestamp);
+      const date = Number.isNaN(timestampMs) ? null : new Date(timestampMs);
+      const sourceRaw = String(detail.source ?? '').trim();
+      const authIndexRaw = detail.auth_index as unknown;
+      const authIndex =
+        authIndexRaw === null || authIndexRaw === undefined || authIndexRaw === ''
+          ? '-'
+          : String(authIndexRaw);
+      const sourceInfo = resolveSourceDisplay(sourceRaw, authIndexRaw, sourceInfoMap, authFileMap);
+      const source = sourceInfo.displayName;
+      const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
+      const sourceType = sourceInfo.type;
+      const model = String(detail.__modelName ?? '').trim() || '-';
+      const inputTokens = Math.max(toNumber(detail.tokens?.input_tokens), 0);
+      const outputTokens = Math.max(toNumber(detail.tokens?.output_tokens), 0);
+      const reasoningTokens = Math.max(toNumber(detail.tokens?.reasoning_tokens), 0);
+      const cachedTokens = Math.max(
+        Math.max(toNumber(detail.tokens?.cached_tokens), 0),
+        Math.max(toNumber(detail.tokens?.cache_tokens), 0)
+      );
+      const totalTokens = Math.max(
+        toNumber(detail.tokens?.total_tokens),
+        extractTotalTokens(detail)
+      );
+      const latencyMs = extractLatencyMs(detail);
 
-        return {
-          id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
-          timestamp,
-          timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs,
-          timestampLabel: date ? date.toLocaleString(i18n.language) : timestamp || '-',
-          model,
-          sourceKey,
-          sourceRaw: sourceRaw || '-',
-          source,
-          sourceType,
-          authIndex,
-          failed: detail.failed === true,
-          latencyMs,
-          inputTokens,
-          outputTokens,
-          reasoningTokens,
-          cachedTokens,
-          totalTokens,
-        };
-      });
+      return {
+        id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
+        timestamp,
+        timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs,
+        timestampLabel: date ? date.toLocaleString(i18n.language) : timestamp || '-',
+        model,
+        sourceKey,
+        sourceRaw: sourceRaw || '-',
+        source,
+        sourceType,
+        authIndex,
+        failed: detail.failed === true,
+        latencyMs,
+        inputTokens,
+        outputTokens,
+        reasoningTokens,
+        cachedTokens,
+        totalTokens,
+      };
+    });
 
     const sourceLabelKeyMap = new Map<string, Set<string>>();
     baseRows.forEach((row) => {

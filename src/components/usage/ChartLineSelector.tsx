@@ -16,7 +16,7 @@ export function ChartLineSelector({
   chartLines,
   modelNames,
   maxLines = 9,
-  onChange
+  onChange,
 }: ChartLineSelectorProps) {
   const { t } = useTranslation();
 
@@ -46,7 +46,7 @@ export function ChartLineSelector({
   const options = useMemo(
     () => [
       { value: 'all', label: t('usage_stats.chart_line_all') },
-      ...modelNames.map((name) => ({ value: name, label: name }))
+      ...modelNames.map((name) => ({ value: name, label: name })),
     ],
     [modelNames, t]
   );

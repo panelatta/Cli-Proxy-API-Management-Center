@@ -1,43 +1,53 @@
-/**
- * API 密钥管理
- */
-
-import type { ApiKeyEntry } from '@/types';
 import { normalizeAccessApiKeyEntries, serializeAccessApiKeyEntry } from '@/utils/apiKeys';
+/** Client access keys are a direct config list, not upstream provider groups. */
 import { apiClient } from './client';
+import { getConfigValue, guardConfigConnection } from './configValue';
+
+const PATH = '/config/access/api-keys';
+
+const assertIndex = (keys: unknown[], index: number): void => {
+  if (!Number.isInteger(index) || index < 0 || index >= keys.length) {
+    throw new RangeError('API key index out of range');
+  }
+};
 
 export const apiKeysApi = {
   async list(): Promise<string[]> {
-    const data = await apiClient.get<Record<string, unknown>>('/api-keys');
-    const keys = data['api-keys'] ?? data.apiKeys ?? data['api-key-entries'] ?? data.apiKeyEntries;
-    return normalizeAccessApiKeyEntries(keys).map((entry) => entry.apiKey);
+    const data = await getConfigValue<unknown>(PATH, []);
+    return normalizeAccessApiKeyEntries(data).map((entry) => entry.apiKey);
   },
 
-  async listEntries(): Promise<ApiKeyEntry[]> {
-    const data = await apiClient.get<Record<string, unknown>>('/api-key-entries');
-    const entries = data['api-key-entries'] ?? data.apiKeyEntries ?? data.items ?? data;
-    return normalizeAccessApiKeyEntries(entries);
+  async listEntries() {
+    return normalizeAccessApiKeyEntries(await getConfigValue<unknown>(PATH, []));
   },
 
-  replace: (keys: string[]) => apiClient.put('/api-keys', keys),
+  replace: (keys: string[]) => apiClient.put(PATH, keys),
 
-  update: (index: number, value: string) => apiClient.patch('/api-keys', { index, value }),
+  async update(index: number, value: string) {
+    const assertConnection = guardConfigConnection();
+    const keys = await apiKeysApi.listEntries();
+    assertConnection();
+    assertIndex(keys, index);
+    keys[index] = { ...keys[index], apiKey: value };
+    return apiClient.put(
+      PATH,
+      keys.map((entry) =>
+        entry.name || entry.forceModel ? serializeAccessApiKeyEntry(entry) : entry.apiKey
+      )
+    );
+  },
 
-  delete: (index: number) => apiClient.delete(`/api-keys?index=${index}`),
-
-  replaceEntries: (entries: ApiKeyEntry[]) =>
-    apiClient.put('/api-key-entries', entries.map(serializeAccessApiKeyEntry)),
-
-  updateEntry: (index: number, value: ApiKeyEntry) =>
-    apiClient.patch('/api-key-entries', {
-      index,
-      value: serializeAccessApiKeyEntry(value),
-    }),
-
-  addEntry: (value: ApiKeyEntry) =>
-    apiClient.patch('/api-key-entries', {
-      new: serializeAccessApiKeyEntry(value),
-    }),
-
-  deleteEntry: (index: number) => apiClient.delete(`/api-key-entries?index=${index}`),
+  async delete(index: number) {
+    const assertConnection = guardConfigConnection();
+    const keys = await apiKeysApi.listEntries();
+    assertConnection();
+    assertIndex(keys, index);
+    keys.splice(index, 1);
+    return apiClient.put(
+      PATH,
+      keys.map((entry) =>
+        entry.name || entry.forceModel ? serializeAccessApiKeyEntry(entry) : entry.apiKey
+      )
+    );
+  },
 };

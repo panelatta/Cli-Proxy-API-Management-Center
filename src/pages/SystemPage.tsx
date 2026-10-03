@@ -13,12 +13,16 @@ import {
   useThemeStore,
 } from '@/stores';
 import { configApi, versionApi } from '@/services/api';
-import { apiKeysApi } from '@/services/api/apiKeys';
+import { useApiKeysForModels } from '@/hooks/useApiKeysForModels';
+import { formatDateTimeValue } from '@/utils/format';
 import { classifyModels } from '@/utils/models';
 import { STORAGE_KEY_AUTH } from '@/utils/constants';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconClaude from '@/assets/icons/claude.svg';
+import iconMeta from '@/assets/icons/meta.svg';
+import iconDevinLight from '@/assets/icons/devin.svg';
+import iconDevinDark from '@/assets/icons/devin-dark.svg';
 import iconOpenaiLight from '@/assets/icons/openai-light.svg';
 import iconOpenaiDark from '@/assets/icons/openai-dark.svg';
 import iconQwen from '@/assets/icons/qwen.svg';
@@ -26,18 +30,21 @@ import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconGlm from '@/assets/icons/glm.svg';
 import iconGrok from '@/assets/icons/grok.svg';
+import iconGrokDark from '@/assets/icons/grok-dark.svg';
 import iconDeepseek from '@/assets/icons/deepseek.svg';
 import iconMinimax from '@/assets/icons/minimax.svg';
 import styles from './SystemPage.module.scss';
 
 const MODEL_CATEGORY_ICONS: Record<string, string | { light: string; dark: string }> = {
+  devin: { light: iconDevinLight, dark: iconDevinDark },
   gpt: { light: iconOpenaiLight, dark: iconOpenaiDark },
   claude: iconClaude,
+  meta: iconMeta,
   gemini: iconGemini,
   qwen: iconQwen,
-  kimi: { light: iconKimiLight, dark: iconKimiDark },
+  kimi: { light: iconKimiDark, dark: iconKimiLight },
   glm: iconGlm,
-  grok: iconGrok,
+  grok: { light: iconGrok, dark: iconGrokDark },
   deepseek: iconDeepseek,
   minimax: iconMinimax,
 };
@@ -93,7 +100,6 @@ export function SystemPage() {
   const [requestLogSaving, setRequestLogSaving] = useState(false);
   const [checkingVersion, setCheckingVersion] = useState(false);
 
-  const apiKeysCache = useRef<string[]>([]);
   const versionTapCount = useRef(0);
   const versionTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -108,9 +114,8 @@ export function SystemPage() {
 
   const appVersion = __APP_VERSION__ || t('system_info.version_unknown');
   const apiVersion = auth.serverVersion || t('system_info.version_unknown');
-  const buildTime = auth.serverBuildDate
-    ? new Date(auth.serverBuildDate).toLocaleString(i18n.language)
-    : t('system_info.version_unknown');
+  const buildTime =
+    formatDateTimeValue(auth.serverBuildDate, i18n.language) || t('system_info.version_unknown');
 
   const getIconForCategory = (categoryId: string): string | null => {
     const iconEntry = MODEL_CATEGORY_ICONS[categoryId];
@@ -119,54 +124,7 @@ export function SystemPage() {
     return resolvedTheme === 'dark' ? iconEntry.dark : iconEntry.light;
   };
 
-  const normalizeApiKeyList = (input: unknown): string[] => {
-    if (!Array.isArray(input)) return [];
-    const seen = new Set<string>();
-    const keys: string[] = [];
-
-    input.forEach((item) => {
-      const record =
-        item !== null && typeof item === 'object' && !Array.isArray(item)
-          ? (item as Record<string, unknown>)
-          : null;
-      const value =
-        typeof item === 'string'
-          ? item
-          : record
-            ? (record['api-key'] ?? record['apiKey'] ?? record.key ?? record.Key)
-            : '';
-      const trimmed = String(value ?? '').trim();
-      if (!trimmed || seen.has(trimmed)) return;
-      seen.add(trimmed);
-      keys.push(trimmed);
-    });
-
-    return keys;
-  };
-
-  const resolveApiKeysForModels = useCallback(async () => {
-    if (apiKeysCache.current.length) {
-      return apiKeysCache.current;
-    }
-
-    const configKeys = normalizeApiKeyList(config?.apiKeys);
-    if (configKeys.length) {
-      apiKeysCache.current = configKeys;
-      return configKeys;
-    }
-
-    try {
-      const list = await apiKeysApi.list();
-      const normalized = normalizeApiKeyList(list);
-      if (normalized.length) {
-        apiKeysCache.current = normalized;
-      }
-      return normalized;
-    } catch (err) {
-      console.warn('Auto loading API keys for models failed:', err);
-      return [];
-    }
-  }, [config?.apiKeys]);
+  const resolveApiKeysForModels = useApiKeysForModels();
 
   const fetchModels = async ({ forceRefresh = false }: { forceRefresh?: boolean } = {}) => {
     if (auth.connectionStatus !== 'connected') {
@@ -182,13 +140,9 @@ export function SystemPage() {
       return;
     }
 
-    if (forceRefresh) {
-      apiKeysCache.current = [];
-    }
-
     setModelStatus({ type: 'muted', message: t('system_info.models_loading') });
     try {
-      const apiKeys = await resolveApiKeysForModels();
+      const apiKeys = await resolveApiKeysForModels({ force: forceRefresh });
       const primaryKey = apiKeys[0];
       const list = await fetchModelsFromStore(auth.apiBase, primaryKey, forceRefresh);
       const hasModels = list.length > 0;

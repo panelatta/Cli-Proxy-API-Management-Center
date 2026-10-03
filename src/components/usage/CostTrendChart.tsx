@@ -8,7 +8,7 @@ import {
   buildHourlyCostSeries,
   buildDailyCostSeries,
   formatUsd,
-  type ModelPrice
+  type ModelPrice,
 } from '@/utils/usage';
 import { buildChartOptions, getHourChartMinWidth } from '@/utils/usage/chartConfig';
 import type { UsagePayload } from './hooks/useUsageData';
@@ -43,7 +43,7 @@ export function CostTrendChart({
   isDark,
   isMobile,
   modelPrices,
-  hourWindowHours
+  hourWindowHours,
 }: CostTrendChartProps) {
   const { t } = useTranslation();
   const [period, setPeriod] = useState<'hour' | 'day'>('hour');
@@ -70,9 +70,9 @@ export function CostTrendChart({
           pointBackgroundColor: COST_COLOR,
           pointBorderColor: COST_COLOR,
           fill: true,
-          tension: 0.35
-        }
-      ]
+          tension: 0.35,
+        },
+      ],
     };
 
     const baseOptions = buildChartOptions({ period, labels: series.labels, isDark, isMobile });
@@ -83,11 +83,13 @@ export function CostTrendChart({
         y: {
           ...baseOptions.scales?.y,
           ticks: {
-            ...(baseOptions.scales?.y && 'ticks' in baseOptions.scales.y ? baseOptions.scales.y.ticks : {}),
-            callback: (value: string | number) => formatUsd(Number(value))
-          }
-        }
-      }
+            ...(baseOptions.scales?.y && 'ticks' in baseOptions.scales.y
+              ? baseOptions.scales.y.ticks
+              : {}),
+            callback: (value: string | number) => formatUsd(Number(value)),
+          },
+        },
+      },
     };
 
     return { chartData: data, chartOptions: options, hasData: series.hasData };

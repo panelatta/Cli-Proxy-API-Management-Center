@@ -19,13 +19,7 @@ export interface ModelStatsCardProps {
 }
 
 type SortKey =
-  | 'model'
-  | 'requests'
-  | 'tokens'
-  | 'cost'
-  | 'successRate'
-  | 'averageLatencyMs'
-  | 'totalLatencyMs';
+  'model' | 'requests' | 'tokens' | 'cost' | 'successRate' | 'averageLatencyMs' | 'totalLatencyMs';
 type SortDir = 'asc' | 'desc';
 
 interface ModelStatWithRate extends ModelStat {

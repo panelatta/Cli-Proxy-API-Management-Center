@@ -3,6 +3,8 @@
  * 迁移自基线 utils/models.js
  */
 
+import { isRecord } from './helpers';
+
 export interface ModelInfo {
   name: string;
   alias?: string;
@@ -10,6 +12,8 @@ export interface ModelInfo {
 }
 
 const MODEL_CATEGORIES = [
+  { id: 'devin', label: 'Devin', patterns: [] },
+  { id: 'meta', label: 'Muse', patterns: [/\bmuse(?:[-/\s]|$)/i] },
   { id: 'gpt', label: 'GPT', patterns: [/gpt/i, /\bo\d\b/i, /\bo\d+\.?/i, /\bchatgpt/i] },
   { id: 'claude', label: 'Claude', patterns: [/claude/i] },
   { id: 'gemini', label: 'Gemini', patterns: [/gemini/i, /\bgai\b/i] },
@@ -18,7 +22,7 @@ const MODEL_CATEGORIES = [
   { id: 'glm', label: 'GLM', patterns: [/glm/i, /chatglm/i] },
   { id: 'grok', label: 'Grok', patterns: [/grok/i] },
   { id: 'deepseek', label: 'DeepSeek', patterns: [/deepseek/i] },
-  { id: 'minimax', label: 'MiniMax', patterns: [/minimax/i, /abab/i] }
+  { id: 'minimax', label: 'MiniMax', patterns: [/minimax/i, /abab/i] },
 ];
 
 const matchCategory = (text: string) => {
@@ -29,9 +33,6 @@ const matchCategory = (text: string) => {
   }
   return null;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function normalizeModelList(payload: unknown, { dedupe = false } = {}): ModelInfo[] {
   const toModel = (entry: unknown): ModelInfo | null => {
@@ -90,11 +91,14 @@ export interface ModelGroup {
   items: ModelInfo[];
 }
 
-export function classifyModels(models: ModelInfo[] = [], { otherLabel = 'Other' } = {}): ModelGroup[] {
+export function classifyModels(
+  models: ModelInfo[] = [],
+  { otherLabel = 'Other' } = {}
+): ModelGroup[] {
   const groups: ModelGroup[] = MODEL_CATEGORIES.map((category) => ({
     id: category.id,
     label: category.label,
-    items: []
+    items: [],
   }));
 
   const otherGroup: ModelGroup = { id: 'other', label: otherLabel, items: [] };
@@ -103,7 +107,7 @@ export function classifyModels(models: ModelInfo[] = [], { otherLabel = 'Other' 
     const name = (model?.name || '').toString();
     const alias = (model?.alias || '').toString();
     const haystack = `${name} ${alias}`.toLowerCase();
-    const matchedId = matchCategory(haystack);
+    const matchedId = /^devin\//i.test(name) ? 'devin' : matchCategory(haystack);
     const target = matchedId ? groups.find((group) => group.id === matchedId) : null;
 
     if (target) {

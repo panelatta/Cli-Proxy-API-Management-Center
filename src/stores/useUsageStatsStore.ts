@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { usageApi } from '@/services/api';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { collectUsageDetails, computeKeyStatsFromDetails, type KeyStats, type UsageDetail } from '@/utils/usage';
+import {
+  collectUsageDetails,
+  computeKeyStatsFromDetails,
+  type KeyStats,
+  type UsageDetail,
+} from '@/utils/usage';
 import i18n from '@/i18n';
 
 export const USAGE_STATS_STALE_TIME_MS = 240_000;
@@ -82,7 +87,7 @@ export const useUsageStatsStore = create<UsageStatsState>((set, get) => ({
         usageDetails: [],
         error: null,
         lastRefreshedAt: null,
-        scopeKey
+        scopeKey,
       });
     }
 
@@ -106,7 +111,7 @@ export const useUsageStatsStore = create<UsageStatsState>((set, get) => ({
           loading: false,
           error: null,
           lastRefreshedAt: Date.now(),
-          scopeKey
+          scopeKey,
         });
       } catch (error: unknown) {
         if (requestId !== usageRequestToken) return;
@@ -114,9 +119,9 @@ export const useUsageStatsStore = create<UsageStatsState>((set, get) => ({
         set({
           loading: false,
           error: message,
-          scopeKey
+          scopeKey,
         });
-        throw new Error(message);
+        throw error;
       } finally {
         if (inFlightUsageRequest?.id === requestId) {
           inFlightUsageRequest = null;
@@ -138,7 +143,7 @@ export const useUsageStatsStore = create<UsageStatsState>((set, get) => ({
       loading: false,
       error: null,
       lastRefreshedAt: null,
-      scopeKey: ''
+      scopeKey: '',
     });
-  }
+  },
 }));
