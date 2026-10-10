@@ -3,17 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { formatCompactNumber, formatUsd, type ApiStats } from '@/utils/usage';
 import styles from '@/pages/UsagePage.module.scss';
+import { OAuthUsageDetails } from '@/features/usage/OAuthUsageDetails';
+import type { OAuthUsageStats } from '@/features/usage/oauthUsage';
 
 export interface ApiDetailsCardProps {
   apiStats: ApiStats[];
   loading: boolean;
   hasPrices: boolean;
+  oauthStats?: OAuthUsageStats;
 }
 
 type ApiSortKey = 'endpoint' | 'requests' | 'tokens' | 'cost';
 type SortDir = 'asc' | 'desc';
 
-export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardProps) {
+export function ApiDetailsCard({ apiStats, loading, hasPrices, oauthStats }: ApiDetailsCardProps) {
   const { t } = useTranslation();
   const [expandedApis, setExpandedApis] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<ApiSortKey>('requests');
@@ -139,6 +142,7 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                     </button>
                     {isExpanded && (
                       <div id={panelId} className={styles.apiModels}>
+                        <OAuthUsageDetails accounts={oauthStats?.[api.id] ?? []} />
                         {Object.entries(api.models).map(([model, stats]) => (
                           <div key={model} className={styles.modelRow}>
                             <span className={styles.modelName}>{model}</span>

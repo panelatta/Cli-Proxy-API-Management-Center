@@ -39,10 +39,12 @@ import {
   getModelNamesFromUsage,
   getApiStats,
   getModelStats,
-  filterUsageByTimeRange,
+  filterUsageByBounds,
   type UsageTimeRange,
 } from '@/utils/usage';
 import styles from './UsagePage.module.scss';
+import { getUsageBounds, localDateTime, type UsageRange } from '@/features/usage/timeRange';
+import { buildOAuthUsageStats } from '@/features/usage/oauthUsage';
 
 // Register Chart.js components
 ChartJS.register(
@@ -61,17 +63,13 @@ const TIME_RANGE_STORAGE_KEY = 'cli-proxy-usage-time-range-v1';
 const DEFAULT_CHART_LINES = ['all'];
 const DEFAULT_TIME_RANGE: UsageTimeRange = '24h';
 const MAX_CHART_LINES = 9;
-const TIME_RANGE_OPTIONS: ReadonlyArray<{ value: UsageTimeRange; labelKey: string }> = [
+const TIME_RANGE_OPTIONS: ReadonlyArray<{ value: UsageRange; labelKey: string }> = [
   { value: 'all', labelKey: 'usage_stats.range_all' },
   { value: '7h', labelKey: 'usage_stats.range_7h' },
   { value: '24h', labelKey: 'usage_stats.range_24h' },
   { value: '7d', labelKey: 'usage_stats.range_7d' },
+  { value: 'custom', labelKey: 'usage_stats.range_custom' },
 ];
-const HOUR_WINDOW_BY_TIME_RANGE: Record<Exclude<UsageTimeRange, 'all'>, number> = {
-  '7h': 7,
-  '24h': 24,
-  '7d': 7 * 24,
-};
 
 const isUsageTimeRange = (value: unknown): value is UsageTimeRange =>
   value === '7h' || value === '24h' || value === '7d' || value === 'all';
@@ -150,7 +148,9 @@ export function UsagePage() {
 
   // Chart lines state
   const [chartLines, setChartLines] = useState<string[]>(loadChartLines);
-  const [timeRange, setTimeRange] = useState<UsageTimeRange>(loadTimeRange);
+  const [timeRange, setTimeRange] = useState<UsageRange>(loadTimeRange);
+  const [customStart, setCustomStart] = useState(() => localDateTime(Date.now() - 86400000));
+  const [customEnd, setCustomEnd] = useState(() => localDateTime(Date.now()));
 
   useEffect(() => {
     let cancelled = false;
@@ -187,11 +187,30 @@ export function UsagePage() {
     [t]
   );
 
-  const filteredUsage = useMemo(
-    () => (usage ? filterUsageByTimeRange(usage, timeRange) : null),
-    [usage, timeRange]
+  const bounds = useMemo(
+    () => getUsageBounds(timeRange, customStart, customEnd, lastRefreshedAt?.getTime() ?? 0),
+    [timeRange, customStart, customEnd, lastRefreshedAt]
   );
-  const hourWindowHours = timeRange === 'all' ? undefined : HOUR_WINDOW_BY_TIME_RANGE[timeRange];
+  const invalidRange = bounds === null;
+  const filteredUsage = useMemo(
+    () =>
+      usage && bounds ? (timeRange === 'all' ? usage : filterUsageByBounds(usage, bounds)) : null,
+    [usage, bounds, timeRange]
+  );
+  const oauthStats = useMemo(
+    () => buildOAuthUsageStats(usage?.oauthUsage, bounds),
+    [usage, bounds]
+  );
+  const hourWindowHours =
+    timeRange === 'all' || !bounds
+      ? undefined
+      : Math.min(
+          744,
+          Math.max(
+            1,
+            Math.ceil((bounds.endMs - bounds.startMs) / 3600000) + (timeRange === 'custom' ? 1 : 0)
+          )
+        );
 
   const handleChartLinesChange = useCallback((lines: string[]) => {
     setChartLines(normalizeChartLines(lines));
@@ -213,7 +232,7 @@ export function UsagePage() {
       if (typeof localStorage === 'undefined') {
         return;
       }
-      localStorage.setItem(TIME_RANGE_STORAGE_KEY, timeRange);
+      if (timeRange !== 'custom') localStorage.setItem(TIME_RANGE_STORAGE_KEY, timeRange);
     } catch {
       // Ignore storage errors.
     }
@@ -276,7 +295,7 @@ export function UsagePage() {
             <Select
               value={timeRange}
               options={timeRangeOptions}
-              onChange={(value) => setTimeRange(value as UsageTimeRange)}
+              onChange={(value) => setTimeRange(value as UsageRange)}
               className={styles.timeRangeSelectControl}
               ariaLabel={t('usage_stats.range_filter')}
               fullWidth={false}
@@ -323,6 +342,37 @@ export function UsagePage() {
         </div>
       </div>
 
+      {timeRange === 'custom' && (
+        <div className={styles.customRange}>
+          <label>
+            {t('usage_stats.range_start')}
+            <input
+              type="datetime-local"
+              value={customStart}
+              onChange={(event) => setCustomStart(event.target.value)}
+              aria-invalid={invalidRange}
+            />
+          </label>
+          <label>
+            {t('usage_stats.range_end')}
+            <input
+              type="datetime-local"
+              value={customEnd}
+              onChange={(event) => setCustomEnd(event.target.value)}
+              aria-invalid={invalidRange}
+            />
+          </label>
+          <span>
+            {t('usage_stats.range_timezone', {
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            })}
+          </span>
+          {invalidRange && <span role="alert">{t('usage_stats.range_invalid')}</span>}
+          {bounds && bounds.endMs - bounds.startMs > 744 * 3600000 && (
+            <span>{t('usage_stats.range_hour_limit')}</span>
+          )}
+        </div>
+      )}
       {error && <div className={styles.errorBox}>{error}</div>}
 
       {/* Stats Overview Cards */}
@@ -396,7 +446,12 @@ export function UsagePage() {
 
       {/* Details Grid */}
       <div className={styles.detailsGrid}>
-        <ApiDetailsCard apiStats={apiStats} loading={loading} hasPrices={hasPrices} />
+        <ApiDetailsCard
+          apiStats={apiStats}
+          loading={loading}
+          hasPrices={hasPrices}
+          oauthStats={oauthStats}
+        />
         <ModelStatsCard modelStats={modelStats} loading={loading} hasPrices={hasPrices} />
       </div>
 

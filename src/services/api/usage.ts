@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { normalizeUsageQuota } from './usageQuota';
 import { computeKeyStats, KeyStats } from '@/utils/usage';
 
 const USAGE_TIMEOUT_MS = 60 * 1000;
@@ -27,7 +28,13 @@ export const usageApi = {
    * 获取使用统计原始数据
    */
   getUsage: () =>
-    apiClient.get<Record<string, unknown>>('/observability/usage', { timeout: USAGE_TIMEOUT_MS }),
+    apiClient
+      .get<Record<string, unknown>>('/observability/usage', { timeout: USAGE_TIMEOUT_MS })
+      .then((response) => {
+        const raw = response.usage ?? response;
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return response;
+        return { ...response, usage: { ...raw, oauthUsage: normalizeUsageQuota(raw) } };
+      }),
 
   /**
    * 导出使用统计快照

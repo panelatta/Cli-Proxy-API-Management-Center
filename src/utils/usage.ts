@@ -105,6 +105,10 @@ export interface ModelStatsSummary {
 }
 
 export type UsageTimeRange = '7h' | '24h' | '7d' | 'all';
+export interface UsageTimeBounds {
+  startMs: number;
+  endMs: number;
+}
 
 const TOKENS_PER_PRICE_UNIT = 1_000_000;
 const MODEL_PRICE_STORAGE_KEY = 'cli-proxy-model-prices-v2';
@@ -154,18 +158,21 @@ export function filterUsageByTimeRange<T>(
     return usageData;
   }
 
-  const usageRecord = isRecord(usageData) ? usageData : null;
-  const apis = getApisRecord(usageData);
-  if (!usageRecord || !apis) {
-    return usageData;
-  }
-
   const rangeMs = USAGE_TIME_RANGE_MS[range];
   if (!Number.isFinite(rangeMs) || rangeMs <= 0) {
     return usageData;
   }
 
-  const windowStart = nowMs - rangeMs;
+  return filterUsageByBounds(usageData, { startMs: nowMs - rangeMs, endMs: nowMs });
+}
+
+export function filterUsageByBounds<T>(usageData: T, bounds: UsageTimeBounds): T {
+  const usageRecord = isRecord(usageData) ? usageData : null;
+  const apis = getApisRecord(usageData);
+  if (!usageRecord || !apis) return usageData;
+  const { startMs: windowStart, endMs: nowMs } = bounds;
+  const validBounds =
+    Number.isFinite(windowStart) && Number.isFinite(nowMs) && windowStart <= nowMs;
   const filteredApis: Record<string, unknown> = {};
   const totalSummary = createUsageSummary();
 
@@ -198,7 +205,12 @@ export function filterUsageByTimeRange<T>(
           return;
         }
         const timestamp = parseTimestampMs(detailRecord.timestamp);
-        if (Number.isNaN(timestamp) || timestamp < windowStart || timestamp > nowMs) {
+        if (
+          !validBounds ||
+          Number.isNaN(timestamp) ||
+          timestamp < windowStart ||
+          timestamp > nowMs
+        ) {
           return;
         }
 
@@ -249,6 +261,7 @@ export function filterUsageByTimeRange<T>(
     ...usageRecord,
     ...toUsageSummaryFields(totalSummary),
     apis: filteredApis,
+    __timeBounds: bounds,
   } as T;
 }
 
@@ -1117,7 +1130,9 @@ export function buildHourlySeriesByModel(
     Number.isFinite(hourWindow) && hourWindow > 0
       ? Math.min(Math.max(Math.floor(hourWindow), 1), 24 * 31)
       : 24;
-  const now = new Date();
+  const bounds =
+    isRecord(usageData) && isRecord(usageData.__timeBounds) ? usageData.__timeBounds : null;
+  const now = new Date(typeof bounds?.endMs === 'number' ? bounds.endMs : Date.now());
   const currentHour = new Date(now);
   currentHour.setMinutes(0, 0, 0);
 
@@ -1717,7 +1732,9 @@ export function buildHourlyTokenBreakdown(
     Number.isFinite(hourWindow) && hourWindow > 0
       ? Math.min(Math.max(Math.floor(hourWindow), 1), 24 * 31)
       : 24;
-  const now = new Date();
+  const bounds =
+    isRecord(usageData) && isRecord(usageData.__timeBounds) ? usageData.__timeBounds : null;
+  const now = new Date(typeof bounds?.endMs === 'number' ? bounds.endMs : Date.now());
   const currentHour = new Date(now);
   currentHour.setMinutes(0, 0, 0);
 
@@ -1842,7 +1859,9 @@ export function buildHourlyCostSeries(
     Number.isFinite(hourWindow) && hourWindow > 0
       ? Math.min(Math.max(Math.floor(hourWindow), 1), 24 * 31)
       : 24;
-  const now = new Date();
+  const bounds =
+    isRecord(usageData) && isRecord(usageData.__timeBounds) ? usageData.__timeBounds : null;
+  const now = new Date(typeof bounds?.endMs === 'number' ? bounds.endMs : Date.now());
   const currentHour = new Date(now);
   currentHour.setMinutes(0, 0, 0);
 

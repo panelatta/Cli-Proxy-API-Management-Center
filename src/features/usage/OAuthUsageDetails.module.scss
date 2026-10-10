@@ -1,0 +1,27 @@
+.section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+.account {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.provider,
+.note {
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+.snapshot,
+.estimate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.estimate {
+  padding-top: 6px;
+  flex-direction: column;
+}
