@@ -1609,11 +1609,14 @@
         }
       },
       "api_keys": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "toggle_enabled": "Enable API key {{name}}",
         "label": "Client API Keys (access.api-keys)",
         "add": "Add API Key",
         "generate": "Generate",
         "empty": "No API keys",
-        "hint": "Each entry represents an API key (consistent with 'API Key Management' page style)",
+        "hint": "Each entry is a client API key. Disable a key to temporarily reject requests without deleting it. Changes take effect after saving the configuration.",
         "edit_title": "Edit API Key",
         "add_title": "Add API Key",
         "input_label": "API Key",

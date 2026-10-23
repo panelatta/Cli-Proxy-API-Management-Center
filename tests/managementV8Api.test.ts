@@ -37,18 +37,21 @@ describe('v8 management API contracts', () => {
     expect(put).toHaveBeenCalledTimes(2);
   });
 
-  test('client key edits preserve server names and model policies', async () => {
-    mock('get', [{ 'api-key': 'first', name: 'Laptop', 'force-model': 'pinned' }, 'second']);
+  test('client key edits preserve server names, model policies, and disabled state', async () => {
+    mock('get', [
+      { 'api-key': 'first', name: 'Laptop', 'force-model': 'pinned', disabled: true },
+      'second',
+    ]);
     const put = mock('put');
     expect(await apiKeysApi.list()).toEqual(['first', 'second']);
     await apiKeysApi.update(0, 'rotated');
     expect(put).toHaveBeenLastCalledWith('/config/access/api-keys', [
-      { 'api-key': 'rotated', name: 'Laptop', 'force-model': 'pinned' },
+      { 'api-key': 'rotated', name: 'Laptop', 'force-model': 'pinned', disabled: true },
       'second',
     ]);
     await apiKeysApi.delete(1);
     expect(put).toHaveBeenLastCalledWith('/config/access/api-keys', [
-      { 'api-key': 'first', name: 'Laptop', 'force-model': 'pinned' },
+      { 'api-key': 'first', name: 'Laptop', 'force-model': 'pinned', disabled: true },
     ]);
   });
 

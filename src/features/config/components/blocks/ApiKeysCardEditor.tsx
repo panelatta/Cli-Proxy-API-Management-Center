@@ -3,6 +3,7 @@ import { memo, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { apiKeyNameFingerprint, readApiKeyNames, saveApiKeyName } from '../../apiKeyNames';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -199,6 +200,31 @@ function ScopedApiKeysCardEditor({
                 <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
               </div>
               <div className="item-actions">
+                {onEntriesChange && (
+                  <ToggleSwitch
+                    checked={!entries.find((entry) => entry.apiKey === key)?.disabled}
+                    label={t(
+                      entries.find((entry) => entry.apiKey === key)?.disabled
+                        ? 'config_management.visual.api_keys.disabled'
+                        : 'config_management.visual.api_keys.enabled'
+                    )}
+                    ariaLabel={t('config_management.visual.api_keys.toggle_enabled', {
+                      name:
+                        entries.find((entry) => entry.apiKey === key)?.name ||
+                        names[nameFingerprints[index]] ||
+                        `#${index + 1}`,
+                    })}
+                    disabled={disabled}
+                    onChange={(enabled) =>
+                      onEntriesChange(
+                        apiKeys.map((apiKey) => ({
+                          ...(entries.find((entry) => entry.apiKey === apiKey) ?? { apiKey }),
+                          ...(apiKey === key ? { disabled: enabled ? undefined : true } : {}),
+                        }))
+                      )
+                    }
+                  />
+                )}
                 <Button
                   variant="secondary"
                   size="sm"

@@ -1,44 +1,18 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { normalizeAccessApiKeyEntries } from '@/utils/apiKeys';
 import { apiKeysApi } from '@/services/api/apiKeys';
 import { useAuthStore, useConfigStore } from '@/stores';
 
-const normalizeApiKeyList = (input: unknown): string[] => {
-  if (!Array.isArray(input)) return [];
-  const seen = new Set<string>();
-  const keys: string[] = [];
-
-  input.forEach((item) => {
-    const record =
-      item !== null && typeof item === 'object' && !Array.isArray(item)
-        ? (item as Record<string, unknown>)
-        : null;
-    const value =
-      typeof item === 'string'
-        ? item
-        : record
-          ? (record['api-key'] ?? record['apiKey'] ?? record.key ?? record.Key)
-          : '';
-    const trimmed = String(value ?? '').trim();
-    if (!trimmed || seen.has(trimmed)) return;
-    seen.add(trimmed);
-    keys.push(trimmed);
-  });
-
-  return keys;
-};
-
-/**
- * 解析用于 /models 探测的 API 密钥列表:
- * 优先取已缓存配置中的 api-keys,否则回退到 /api-keys 接口,结果按连接缓存。
- */
+/** Resolve active client keys for model discovery from config or the v8 API. */
 export function useApiKeysForModels() {
   const apiBase = useAuthStore((state) => state.apiBase);
   const configApiKeys = useConfigStore((state) => state.config?.apiKeys);
+  const configApiKeyEntries = useConfigStore((state) => state.config?.apiKeyEntries);
   const cacheRef = useRef<string[]>([]);
 
   useEffect(() => {
     cacheRef.current = [];
-  }, [apiBase, configApiKeys]);
+  }, [apiBase, configApiKeys, configApiKeyEntries]);
 
   return useCallback(
     async ({ force = false }: { force?: boolean } = {}) => {
@@ -49,15 +23,23 @@ export function useApiKeysForModels() {
         return cacheRef.current;
       }
 
-      const configKeys = normalizeApiKeyList(configApiKeys);
+      const configKeys = [
+        ...new Set(
+          normalizeAccessApiKeyEntries(configApiKeyEntries ?? configApiKeys)
+            .filter((entry) => !entry.disabled)
+            .map((entry) => entry.apiKey)
+        ),
+      ];
       if (configKeys.length) {
         cacheRef.current = configKeys;
         return configKeys;
       }
 
       try {
-        const list = await apiKeysApi.list();
-        const normalized = normalizeApiKeyList(list);
+        const list = await apiKeysApi.listEntries();
+        const normalized = [
+          ...new Set(list.filter((entry) => !entry.disabled).map((entry) => entry.apiKey)),
+        ];
         if (normalized.length) {
           cacheRef.current = normalized;
         }
@@ -66,6 +48,6 @@ export function useApiKeysForModels() {
         return [];
       }
     },
-    [configApiKeys]
+    [configApiKeys, configApiKeyEntries]
   );
 }

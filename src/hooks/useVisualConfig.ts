@@ -1755,7 +1755,9 @@ export function useVisualConfig() {
             doc.setIn(
               ['access', 'api-keys'],
               entries.map((entry) =>
-                entry.name || entry.forceModel ? serializeAccessApiKeyEntry(entry) : entry.apiKey
+                entry.name || entry.forceModel || entry.disabled
+                  ? serializeAccessApiKeyEntry(entry)
+                  : entry.apiKey
               )
             );
           } else if (docHas(doc, ['access', 'api-keys'])) {

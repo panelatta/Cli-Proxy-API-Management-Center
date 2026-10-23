@@ -54,6 +54,7 @@ export interface ModelAlias {
 }
 
 export interface ApiKeyEntry {
+  disabled?: boolean;
   forceModel?: string;
   sourceIndex?: number;
   apiKey: string;

@@ -38,3 +38,30 @@ test('editing a client name preserves its model policy and upstream groups', () 
   ]);
   expect(output['api-keys']).toEqual(parseYaml(fixture)['api-keys']);
 });
+
+test('client keys can be disabled and re-enabled without losing their settings', () => {
+  const original = parseYaml(fixture);
+  const entries = runVisualConfig(fixture).visualValues.apiKeyEntries;
+  const disabled = runVisualConfig(fixture, [
+    { apiKeyEntries: entries.map((entry) => ({ ...entry, disabled: true })) },
+  ]);
+  expect(disabled.visualDirty).toBe(true);
+  const pausedYaml = disabled.applyVisualChangesToYaml(fixture);
+  expect(parseYaml(pausedYaml).access['api-keys']).toEqual([
+    { ...original.access['api-keys'][0], disabled: true },
+  ]);
+  expect(normalizeConfigResponse(parseYaml(pausedYaml)).apiKeyEntries?.[0]?.disabled).toBe(true);
+  const enabled = runVisualConfig(pausedYaml, [
+    { apiKeyEntries: entries.map((entry) => ({ ...entry, disabled: false })) },
+  ]);
+  expect(parseYaml(enabled.applyVisualChangesToYaml(pausedYaml))).toEqual(original);
+});
+
+test('editing other client keys preserves a disabled key without optional metadata', () => {
+  const yaml = 'access:\n  api-keys:\n    - api-key: paused\n      disabled: true\n    - active\n';
+  const config = runVisualConfig(yaml, [{ apiKeysText: 'paused\nreplacement' }]);
+  expect(parseYaml(config.applyVisualChangesToYaml(yaml)).access['api-keys']).toEqual([
+    { 'api-key': 'paused', disabled: true },
+    'replacement',
+  ]);
+});

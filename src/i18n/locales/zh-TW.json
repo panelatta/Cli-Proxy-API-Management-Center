@@ -1633,11 +1633,14 @@
         }
       },
       "api_keys": {
+        "enabled": "已啟用",
+        "disabled": "已停用",
+        "toggle_enabled": "啟用 API 金鑰 {{name}}",
         "label": "用戶端 API 金鑰（access.api-keys）",
         "add": "新增 API 金鑰",
         "generate": "產生",
         "empty": "暫無 API 金鑰",
-        "hint": "每個條目代表一個 API 金鑰（與「API 金鑰管理」頁面樣式一致）",
+        "hint": "每個項目代表一個用戶端 API 金鑰。關閉開關可暫時停用，保留金鑰及其設定；儲存設定後生效。",
         "edit_title": "編輯 API 金鑰",
         "add_title": "新增 API 金鑰",
         "input_label": "API 金鑰",
