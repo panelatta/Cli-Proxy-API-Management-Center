@@ -49,3 +49,14 @@ test('model discovery filters disabled keys when fetching entries from the serve
   restoreSpy = () => spy.mockRestore();
   expect(await resolveModelsKeys()).toEqual(['active-client']);
 });
+
+test('model discovery prefers an unrestricted key to avoid hiding other channels from management', async () => {
+  useConfigStore.getInitialState().config = {
+    apiKeyEntries: [
+      { apiKey: 'claude-client', allowedProviders: ['claude'] },
+      { apiKey: 'all-client' },
+      { apiKey: 'disabled-all-client', disabled: true },
+    ],
+  };
+  expect(await resolveModelsKeys()).toEqual(['all-client', 'claude-client']);
+});

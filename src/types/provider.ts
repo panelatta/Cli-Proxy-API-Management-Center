@@ -54,6 +54,7 @@ export interface ModelAlias {
 }
 
 export interface ApiKeyEntry {
+  allowedProviders?: string[];
   disabled?: boolean;
   forceModel?: string;
   sourceIndex?: number;

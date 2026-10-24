@@ -1608,6 +1608,11 @@
       },
       "api_keys": {
         "enabled": "已启用",
+        "products_label": "允许调用的产品渠道",
+        "products_restrict": "限制产品渠道",
+        "products_all": "全部产品渠道",
+        "products_hint": "关闭时允许全部渠道；开启后至少选择一个渠道。按实际使用的上游渠道授权，模型别名同样受限。未支持的扩展接口会被拒绝。",
+        "products_required": "请至少选择一个产品渠道。",
         "disabled": "已停用",
         "toggle_enabled": "启用 API 密钥 {{name}}",
         "label": "客户端 API 密钥 (access.api-keys)",

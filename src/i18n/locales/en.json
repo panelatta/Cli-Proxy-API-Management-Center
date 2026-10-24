@@ -1610,6 +1610,11 @@
       },
       "api_keys": {
         "enabled": "Enabled",
+        "products_label": "Allowed product channels",
+        "products_restrict": "Restrict product channels",
+        "products_all": "All product channels",
+        "products_hint": "When off, all channels are allowed. When on, select at least one channel. Permissions follow the actual upstream channel, including model aliases. Unlisted extension routes are blocked.",
+        "products_required": "Select at least one product channel.",
         "disabled": "Disabled",
         "toggle_enabled": "Enable API key {{name}}",
         "label": "Client API Keys (access.api-keys)",

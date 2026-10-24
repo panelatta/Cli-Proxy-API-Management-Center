@@ -32,7 +32,7 @@ export const apiKeysApi = {
     return apiClient.put(
       PATH,
       keys.map((entry) =>
-        entry.name || entry.forceModel || entry.disabled
+        entry.name || entry.forceModel || entry.disabled || entry.allowedProviders?.length
           ? serializeAccessApiKeyEntry(entry)
           : entry.apiKey
       )
@@ -48,7 +48,7 @@ export const apiKeysApi = {
     return apiClient.put(
       PATH,
       keys.map((entry) =>
-        entry.name || entry.forceModel || entry.disabled
+        entry.name || entry.forceModel || entry.disabled || entry.allowedProviders?.length
           ? serializeAccessApiKeyEntry(entry)
           : entry.apiKey
       )

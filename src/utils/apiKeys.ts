@@ -15,8 +15,17 @@ export const normalizeAccessApiKeyEntry = (item: unknown): ApiKeyEntry | null =>
   if (!trimmed) return null;
   const name = record ? String(record.name ?? '').trim() : '';
   const forceModel = record ? String(record['force-model'] ?? record.forceModel ?? '').trim() : '';
+  const rawProviders = record?.['allowed-providers'] ?? record?.allowedProviders;
+  const allowedProviders = Array.isArray(rawProviders)
+    ? [
+        ...new Set(
+          rawProviders.map((value) => String(value).trim().toLowerCase() || '__deny_all__')
+        ),
+      ]
+    : [];
   return {
     apiKey: trimmed,
+    ...(allowedProviders.length ? { allowedProviders } : {}),
     ...(name ? { name } : {}),
     ...(forceModel ? { forceModel } : {}),
     ...(record?.disabled === true ? { disabled: true } : {}),
@@ -36,5 +45,6 @@ export const serializeAccessApiKeyEntry = (entry: ApiKeyEntry) => {
     ...(name ? { name } : {}),
     ...(entry.forceModel ? { 'force-model': entry.forceModel } : {}),
     ...(entry.disabled ? { disabled: true } : {}),
+    ...(entry.allowedProviders?.length ? { 'allowed-providers': entry.allowedProviders } : {}),
   };
 };

@@ -14,6 +14,22 @@ import { isValidApiKeyCharset } from '@/utils/validation';
 import { ApiKeyStrengthMeter } from './ApiKeyStrengthMeter';
 import styles from './Blocks.module.scss';
 
+const PRODUCT_CHANNELS: Record<string, string> = {
+  claude: 'Claude',
+  codex: 'Codex',
+  gemini: 'Gemini',
+  'gemini-cli': 'Gemini CLI',
+  'gemini-interactions': 'Gemini Interactions',
+  antigravity: 'Antigravity',
+  vertex: 'Vertex',
+  xai: 'xAI / Grok',
+  meta: 'Meta',
+  kimi: 'Kimi',
+  qwen: 'Qwen',
+  iflow: 'iFlow',
+  'openai-compatibility': 'OpenAI Compatible',
+};
+
 interface ApiKeysCardEditorProps {
   value: string;
   entries?: ApiKeyEntry[];
@@ -37,6 +53,8 @@ function ScopedApiKeysCardEditor({
 }: ApiKeysCardEditorProps & { apiBase: string }) {
   const [names, setNames] = useState(() => readApiKeyNames(apiBase));
   const [nameValue, setNameValue] = useState('');
+  const [restrictProducts, setRestrictProducts] = useState(false);
+  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const apiKeys = useMemo(
@@ -72,6 +90,8 @@ function ScopedApiKeysCardEditor({
   const [formError, setFormError] = useState('');
 
   const openAddModal = () => {
+    setRestrictProducts(false);
+    setAllowedProviders([]);
     setNameValue('');
     setEditingApiKeyId(null);
     setInputValue('');
@@ -81,6 +101,10 @@ function ScopedApiKeysCardEditor({
 
   const openEditModal = (apiKeyId: string) => {
     const editingIndex = renderApiKeyIds.findIndex((id) => id === apiKeyId);
+    const products =
+      entries.find((entry) => entry.apiKey === apiKeys[editingIndex])?.allowedProviders ?? [];
+    setAllowedProviders(products);
+    setRestrictProducts(products.length > 0);
     const latestNames = readApiKeyNames(apiBase);
     setNames(latestNames);
     setNameValue(
@@ -129,6 +153,10 @@ function ScopedApiKeysCardEditor({
       return;
     }
 
+    if (restrictProducts && allowedProviders.length === 0) {
+      setFormError(t('config_management.visual.api_keys.products_required'));
+      return;
+    }
     const editingIndex = editingApiKeyId
       ? renderApiKeyIds.findIndex((id) => id === editingApiKeyId)
       : -1;
@@ -153,6 +181,7 @@ function ScopedApiKeysCardEditor({
               ...entries.find((entry) => entry.apiKey === apiKeys[editingIndex]),
               apiKey,
               name: nameValue.trim(),
+              allowedProviders: restrictProducts ? allowedProviders : undefined,
             };
           }
           return entries.find((entry) => entry.apiKey === apiKey) ?? { apiKey };
@@ -198,6 +227,12 @@ function ScopedApiKeysCardEditor({
                     t('config_management.visual.api_keys.input_label')}
                 </div>
                 <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
+                <div className="item-subtitle">
+                  {entries
+                    .find((entry) => entry.apiKey === key)
+                    ?.allowedProviders?.map((provider) => PRODUCT_CHANNELS[provider] ?? provider)
+                    .join(', ') || t('config_management.visual.api_keys.products_all')}
+                </div>
               </div>
               <div className="item-actions">
                 {onEntriesChange && (
@@ -293,6 +328,48 @@ function ScopedApiKeysCardEditor({
             {t('config_management.visual.api_keys.name_hint')}
           </div>
         </div>
+        {onEntriesChange && (
+          <fieldset className="form-group" disabled={disabled}>
+            <legend>{t('config_management.visual.api_keys.products_label')}</legend>
+            <ToggleSwitch
+              checked={restrictProducts}
+              onChange={(restricted) => {
+                setRestrictProducts(restricted);
+                setFormError('');
+              }}
+              label={t('config_management.visual.api_keys.products_restrict')}
+              ariaLabel={t('config_management.visual.api_keys.products_restrict')}
+              disabled={disabled}
+            />
+            <div className="hint">{t('config_management.visual.api_keys.products_hint')}</div>
+            {restrictProducts && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
+                {[...new Set([...Object.keys(PRODUCT_CHANNELS), ...allowedProviders])].map(
+                  (provider) => (
+                    <label
+                      key={provider}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={allowedProviders.includes(provider)}
+                        onChange={(event) => {
+                          setFormError('');
+                          setAllowedProviders((current) =>
+                            event.target.checked
+                              ? [...current, provider]
+                              : current.filter((value) => value !== provider)
+                          );
+                        }}
+                      />
+                      {PRODUCT_CHANNELS[provider] ?? provider}
+                    </label>
+                  )
+                )}
+              </div>
+            )}
+          </fieldset>
+        )}
         <div className="form-group">
           <label htmlFor={apiKeyInputId}>
             {t('config_management.visual.api_keys.input_label')}

@@ -27,6 +27,11 @@ export function useApiKeysForModels() {
         ...new Set(
           normalizeAccessApiKeyEntries(configApiKeyEntries ?? configApiKeys)
             .filter((entry) => !entry.disabled)
+            .sort(
+              (a, b) =>
+                Number(Boolean(a.allowedProviders?.length)) -
+                Number(Boolean(b.allowedProviders?.length))
+            )
             .map((entry) => entry.apiKey)
         ),
       ];
@@ -38,7 +43,16 @@ export function useApiKeysForModels() {
       try {
         const list = await apiKeysApi.listEntries();
         const normalized = [
-          ...new Set(list.filter((entry) => !entry.disabled).map((entry) => entry.apiKey)),
+          ...new Set(
+            list
+              .filter((entry) => !entry.disabled)
+              .sort(
+                (a, b) =>
+                  Number(Boolean(a.allowedProviders?.length)) -
+                  Number(Boolean(b.allowedProviders?.length))
+              )
+              .map((entry) => entry.apiKey)
+          ),
         ];
         if (normalized.length) {
           cacheRef.current = normalized;

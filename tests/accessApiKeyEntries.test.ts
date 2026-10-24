@@ -65,3 +65,34 @@ test('editing other client keys preserves a disabled key without optional metada
     'replacement',
   ]);
 });
+
+test('product permissions survive YAML edits, disabling, rotation, and reordering', () => {
+  const yaml = `access:
+  api-keys:
+    - api-key: claude-client
+      allowed-providers: [claude]
+    - open-client
+`;
+  const baseline = runVisualConfig(yaml).visualValues.apiKeyEntries;
+  expect(baseline[0].allowedProviders).toEqual(['claude']);
+  const config = runVisualConfig(yaml, [
+    {
+      apiKeysText: 'open-client\nrotated-client',
+      apiKeyEntries: [baseline[1], { ...baseline[0], apiKey: 'rotated-client', disabled: true }],
+    },
+  ]);
+  const output = parseYaml(config.applyVisualChangesToYaml(yaml));
+  expect(output.access['api-keys']).toEqual([
+    'open-client',
+    { 'api-key': 'rotated-client', disabled: true, 'allowed-providers': ['claude'] },
+  ]);
+  const unrestricted = runVisualConfig(yaml, [
+    {
+      apiKeyEntries: baseline.map((entry) => ({ ...entry, allowedProviders: undefined })),
+    },
+  ]);
+  expect(parseYaml(unrestricted.applyVisualChangesToYaml(yaml)).access['api-keys']).toEqual([
+    'claude-client',
+    'open-client',
+  ]);
+});
