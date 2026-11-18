@@ -1,0 +1,112 @@
+name: CPA upgrade validation
+
+on:
+  push:
+    branches: ['upgrade/cpa-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    env:
+      VERSION: v1.28.3-local
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+      - run: bun install --frozen-lockfile
+      - run: bun run verify
+      - name: Prepare single-file panel
+        run: |
+          mkdir -p release
+          cp dist/index.html release/management.html
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          artifact = Path('release/management.html')
+          Path('release/release.json').write_text(json.dumps({'source_commit': os.environ['GITHUB_SHA'], 'version': os.environ['VERSION'], 'sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: management-panel
+          path: release/
+          retention-days: 7
+          if-no-files-found: error
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CPA_RELEASE_VERSION: v8.0.77-local
+      CGO_ENABLED: '0'
+      GOOS: linux
+      GOARCH: amd64
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read pinned backend revision
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          ref = Path('.github/cpa-backend-ref').read_text().strip()
+          assert re.fullmatch(r'[0-9a-f]{40}', ref)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'BACKEND_REF={ref}\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          repository: panelatta/CLIProxyAPI
+          ref: ${{ env.BACKEND_REF }}
+          path: backend
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Run local-extension and integration regressions
+        working-directory: backend
+        timeout-minutes: 15
+        run: |
+          mapfile -t packages < ../.github/cpa-backend-packages.txt
+          go test -v -vet=off -p 2 -parallel 1 -timeout 5m "${packages[@]}" > test-results.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/test-results.log
+          retention-days: 7
+      - name: Build static Alpine-compatible binary
+        working-directory: backend
+        run: |
+          mkdir -p release
+          cpa_commit=$(git rev-parse --short=12 HEAD)
+          cpa_built=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          go build -trimpath -buildvcs=false -p 2 -ldflags "-s -w -X main.Version=${CPA_RELEASE_VERSION} -X main.Commit=${cpa_commit} -X main.BuildDate=${cpa_built}" -o release/CLIProxyAPI ./cmd/server
+          file release/CLIProxyAPI | grep 'statically linked'
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          artifact = Path('release/CLIProxyAPI')
+          Path('release/release.json').write_text(json.dumps({'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'version': os.environ['CPA_RELEASE_VERSION'], 'target': 'linux/amd64', 'cgo_enabled': False, 'sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-proxy-api-linux-amd64
+          path: backend/release/
+          retention-days: 7
+          if-no-files-found: error
