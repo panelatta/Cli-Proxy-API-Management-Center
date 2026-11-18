@@ -32,7 +32,6 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
       if (!name) return null;
       const alias = item.alias;
       const priority = item.priority;
-      const testModel = item['test-model'];
       const image = normalizeBoolean(item.image);
       const thinking = normalizeModelThinking(item.thinking);
       const entry: ModelAlias = { name: String(name), sourceIndex, ...normalizeModelOptions(item) };
@@ -44,9 +43,6 @@ const normalizeModelAliases = (models: unknown): ModelAlias[] => {
         if (Number.isFinite(parsed)) {
           entry.priority = parsed;
         }
-      }
-      if (testModel) {
-        entry.testModel = String(testModel);
       }
       if (image !== undefined) {
         entry.image = image;
@@ -203,6 +199,23 @@ const normalizeProviderKeyConfig = (item: unknown): ProviderKeyConfig | null => 
     if (sensitiveWords.length) {
       cloak.sensitiveWords = sensitiveWords;
     }
+    const wordsReplace = cloakRaw['sensitive-words-replace'];
+    if (isRecord(wordsReplace)) {
+      cloak.sensitiveWordsReplace = Object.fromEntries(
+        Object.entries(wordsReplace).filter(
+          (entry): entry is [string, string] => typeof entry[1] === 'string'
+        )
+      );
+    }
+    const patternsReplace = cloakRaw['sensitive-patterns-replace'];
+    if (Array.isArray(patternsReplace)) {
+      // Go RE2 syntax belongs to the backend; preserve order and all string contents.
+      cloak.sensitivePatternsReplace = patternsReplace.flatMap((rule) =>
+        isRecord(rule) && typeof rule.pattern === 'string' && typeof rule.replacement === 'string'
+          ? [{ pattern: rule.pattern, replacement: rule.replacement }]
+          : []
+      );
+    }
     const cacheUserId = normalizeBoolean(cloakRaw['cache-user-id']);
     if (cacheUserId !== undefined) {
       cloak.cacheUserId = cacheUserId;
@@ -279,7 +292,6 @@ const normalizeOpenAIProvider = (
   const headers = normalizeHeaders(provider.headers);
   const models = normalizeModelAliases(provider.models);
   const priority = provider.priority;
-  const testModel = provider['test-model'];
 
   const result: OpenAIProviderConfig = {
     name: String(name),
@@ -299,7 +311,6 @@ const normalizeOpenAIProvider = (
   if (headers) result.headers = headers;
   if (models.length) result.models = models;
   if (priority !== undefined) result.priority = Number(priority);
-  if (testModel) result.testModel = String(testModel);
   const authIndex = normalizeAuthIndex(provider['auth-index']);
   if (authIndex) result.authIndex = authIndex;
   if (sourceIndex !== undefined) result.sourceIndex = sourceIndex;
@@ -366,10 +377,7 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
   const keys = at('access.api-keys');
   config.apiKeyEntries = normalizeAccessApiKeyEntries(keys);
   config.apiKeys = config.apiKeyEntries.map((entry) => entry.apiKey);
-  const quota = at('quota-exceeded');
   config.quotaExceeded = {
-    switchProject: isRecord(quota) ? normalizeBoolean(quota['switch-project']) : false,
-    switchPreviewModel: isRecord(quota) ? normalizeBoolean(quota['switch-preview-model']) : false,
     antigravityCredits:
       normalizeBoolean(at('oauth.providers.antigravity.antigravity-credits')) ?? false,
   };

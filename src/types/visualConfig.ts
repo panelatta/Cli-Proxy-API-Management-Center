@@ -91,6 +91,15 @@ export type PayloadRule = {
   params: PayloadParamEntry[];
 };
 
+export type PayloadReplaceRule = {
+  id: string;
+  models: PayloadRule['models'];
+  target: { role: string; all: boolean; positions: string };
+  replacements: { id: string; from: string; to: string }[];
+  /** Malformed source shape; clear explicitly after repairing the draft. */
+  invalid?: boolean;
+};
+
 export type PayloadFilterRule = {
   id: string;
   models: PayloadModelEntry[];
@@ -118,6 +127,7 @@ export type PluginStoreAuthRule = {
 
 /** UI draft keys; YAML persistence uses the v8 tree, not these flattened names. */
 export type VisualConfigValues = {
+  githubToken: string;
   trustedProxies: string[];
   discoveryEnabled: boolean;
   discoveryServiceName: string;
@@ -188,14 +198,16 @@ export type VisualConfigValues = {
   disableImageGeneration: DisableImageGenerationMode;
   gptImage2BaseModel: string;
   authAutoRefreshWorkers: string;
-  quotaSwitchProject: boolean;
-  quotaSwitchPreviewModel: boolean;
   /** OAuth-only: oauth.providers.antigravity.antigravity-credits. */
   quotaAntigravityCredits: boolean;
   routingStrategy: RoutingStrategy;
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
   wsAuth: boolean;
+  antigravitySensitiveWordsReplace: Record<string, string>;
+  devinSensitiveWordsReplace: Record<string, string>;
+  antigravitySensitivePatternsReplace: { pattern: string; replacement: string }[];
+  devinSensitivePatternsReplace: { pattern: string; replacement: string }[];
   antigravitySensitiveWords: string[];
   devinSensitiveWords: string[];
   antigravitySignatureCacheEnabled: boolean;
@@ -214,6 +226,7 @@ export type VisualConfigValues = {
   payloadOverrideRules: PayloadRule[];
   payloadOverrideRawRules: PayloadRule[];
   payloadFilterRules: PayloadFilterRule[];
+  payloadReplaceRules: PayloadReplaceRule[];
   streaming: StreamingConfig;
 };
 
@@ -223,6 +236,7 @@ export const makeClientId = () => {
 };
 
 export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
+  githubToken: '',
   trustedProxies: [],
   discoveryEnabled: false,
   discoveryServiceName: '',
@@ -292,13 +306,15 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   disableImageGeneration: 'false',
   gptImage2BaseModel: '',
   authAutoRefreshWorkers: '',
-  quotaSwitchProject: false,
-  quotaSwitchPreviewModel: false,
   quotaAntigravityCredits: false,
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
   wsAuth: true,
+  antigravitySensitiveWordsReplace: {},
+  devinSensitiveWordsReplace: {},
+  antigravitySensitivePatternsReplace: [],
+  devinSensitivePatternsReplace: [],
   antigravitySensitiveWords: [],
   devinSensitiveWords: [],
   antigravitySignatureCacheEnabled: true,
@@ -317,6 +333,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   payloadOverrideRules: [],
   payloadOverrideRawRules: [],
   payloadFilterRules: [],
+  payloadReplaceRules: [],
   streaming: {
     keepaliveSeconds: '',
     bootstrapRetries: '',

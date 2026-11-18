@@ -7,6 +7,16 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { createElement, type ComponentType } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/i18n';
+import { SectionAdvanced } from '@/features/config/components/sections/SectionAdvanced';
+import { SectionConnectivity } from '@/features/config/components/sections/SectionConnectivity';
+import { SectionLogging } from '@/features/config/components/sections/SectionLogging';
+import { SectionNetwork } from '@/features/config/components/sections/SectionNetwork';
+import { SectionPayload } from '@/features/config/components/sections/SectionPayload';
+import { SectionStreaming } from '@/features/config/components/sections/SectionStreaming';
 import {
   COMMON_FIELD_IDS,
   CONFIG_SECTION_IDS,
@@ -72,6 +82,76 @@ describe('search index integrity', () => {
   });
 });
 
+// 搜索也匹配 hintKey 的文字：它必须是字段仍在渲染的说明（可见或在 InfoTip 里），
+// 否则搜到的字段页面上找不到匹配原因；删掉的说明也不该再被搜到。
+describe('search hints are explanations the page still renders', () => {
+  const translations = i18n.cloneInstance({ lng: 'en' });
+  const escapeText = (value: string) =>
+    renderToStaticMarkup(createElement('span', null, value)).slice(6, -7);
+  const sections: Record<string, ComponentType<Record<string, unknown>>> = {
+    connectivity: SectionConnectivity,
+    network: SectionNetwork,
+    logging: SectionLogging,
+    streaming: SectionStreaming,
+    advanced: SectionAdvanced,
+    payload: SectionPayload as ComponentType<Record<string, unknown>>,
+  };
+  const markupOf = (sectionId: string) =>
+    renderToStaticMarkup(
+      createElement(
+        I18nextProvider,
+        { i18n: translations },
+        createElement(sections[sectionId], {
+          values: DEFAULT_VISUAL_VALUES,
+          disabled: false,
+          onChange: () => {},
+        })
+      )
+    );
+  const rendered = Object.fromEntries(Object.keys(sections).map((id) => [id, markupOf(id)]));
+
+  test('every hintKey is rendered by its section', () => {
+    for (const entry of CONFIG_FIELD_SEARCH_INDEX) {
+      if (!entry.hintKey) continue;
+      expect({
+        fieldId: entry.fieldId,
+        rendered: rendered[entry.sectionId].includes(escapeText(translations.t(entry.hintKey))),
+      }).toEqual({ fieldId: entry.fieldId, rendered: true });
+    }
+  });
+
+  test('removed descriptions are neither rendered nor searchable', () => {
+    const removed = [
+      'sections.auth.auth_dir_hint',
+      'sections.tls.enable_desc',
+      'sections.network.routing_strategy_hint',
+      'sections.network.disable_image_generation_hint',
+      'sections.network.passthrough_headers_desc',
+      'sections.system.debug_desc',
+      'sections.system.logging_to_file_desc',
+      'sections.system.usage_statistics_enabled_desc',
+      'sections.streaming.keepalive_hint',
+      'serverExtras.discoveryServiceType.hint',
+      'sections.payload.default_rules_desc',
+      'sections.payload.default_raw_rules_desc',
+      'sections.payload.override_rules_desc',
+      'sections.payload.override_raw_rules_desc',
+      'sections.payload.filter_rules_desc',
+    ].map((key) => `config_management.visual.${key}`);
+    const hintKeys = new Set(CONFIG_FIELD_SEARCH_INDEX.map((entry) => entry.hintKey));
+    const everything = Object.values(rendered).join('');
+    for (const key of removed) {
+      expect(hintKeys.has(key)).toBe(false);
+      expect({ key, rendered: everything.includes(escapeText(translations.t(key))) }).toEqual({
+        key,
+        rendered: false,
+      });
+    }
+    // A query matching only removed copy finds nothing (the old "Log to File" description).
+    expect(searchConfigFields('save logs to files', (key) => translations.t(key))).toEqual([]);
+  });
+});
+
 describe('value-key coverage (index ↔ VisualConfigValues)', () => {
   test('FIELD_VALUE_KEYS keys are exactly the index field ids', () => {
     expect(sorted(Object.keys(FIELD_VALUE_KEYS))).toEqual(sorted(INDEX_FIELD_ID_SET));
@@ -113,7 +193,7 @@ describe('JSX anchor parity (source scan)', () => {
 });
 
 describe('registry consistency', () => {
-  test('tab id registry is common + the seven canonical sections', () => {
+  test('tab id registry is common + the canonical sections', () => {
     expect([...CONFIG_TAB_IDS]).toEqual(['common', ...CONFIG_SECTION_IDS]);
   });
 
@@ -138,16 +218,26 @@ describe('registry consistency', () => {
 });
 
 describe('v8 YAML search paths', () => {
+  test('deprecated quota switches are absent from values and search metadata', () => {
+    for (const fieldId of ['quotaSwitchProject', 'quotaSwitchPreviewModel']) {
+      expect(LEAF_VALUE_KEYS.has(fieldId)).toBe(false);
+      expect(findConfigFieldById(fieldId)).toBeUndefined();
+      expect(FIELD_VALUE_KEYS).not.toHaveProperty(fieldId);
+    }
+  });
+
   for (const [fieldId, path] of [
     ['apiKeys', 'access.api-keys'],
     ['commercialMode', 'server.commercial-mode'],
     ['requestRetry', 'routing.retry.request-retry'],
     ['routingStrategy', 'routing.strategy'],
-    ['quotaSwitchProject', 'quota-exceeded.switch-project'],
-    ['quotaSwitchPreviewModel', 'quota-exceeded.switch-preview-model'],
     ['quotaAntigravityCredits', 'oauth.providers.antigravity.antigravity-credits'],
     ['wsAuth', 'oauth.providers.aistudio.ws-auth'],
     ['codexHeaderUserAgent', 'oauth.providers.codex.header-defaults.user-agent'],
+    ['codexOptimizeMultiAgentV2', 'client.codex.optimize-multi-agent-v2'],
+    ['codexResponseSteering', 'upstream.codex.response-steering'],
+    ['claudeHeaderUserAgent', 'upstream.claude.header-defaults.user-agent'],
+    ['xaiInjectXSearch', 'upstream.xai.inject-x-search'],
     ['streamingNonstreamKeepalive', 'requests.nonstream-keepalive-interval'],
     ['payloadDefaultRules', 'requests.payload.default'],
     ['pluginStoreAuth', 'plugins.store-auth'],

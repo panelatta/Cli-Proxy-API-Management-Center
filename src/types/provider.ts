@@ -40,7 +40,6 @@ export interface ModelAlias {
   name: string;
   alias?: string;
   priority?: number;
-  testModel?: string;
   image?: boolean;
   displayName?: string;
   maxContextLength?: number;
@@ -69,6 +68,8 @@ export interface CloakConfig {
   mode?: string;
   strictMode?: boolean;
   sensitiveWords?: string[];
+  sensitiveWordsReplace?: Record<string, string>;
+  sensitivePatternsReplace?: { pattern: string; replacement: string }[];
   cacheUserId?: boolean;
 }
 
@@ -115,7 +116,6 @@ export interface OpenAIProviderConfig extends ProviderRuntimePolicy, ProviderBeh
   headers?: Record<string, string>;
   models?: ModelAlias[];
   priority?: number;
-  testModel?: string;
   disableCooling?: boolean;
   authIndex?: string;
   /** Original index in the backend openai-compatibility array. */

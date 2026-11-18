@@ -11,8 +11,6 @@ import type {
 } from './provider';
 
 export interface QuotaExceededConfig {
-  switchProject?: boolean;
-  switchPreviewModel?: boolean;
   antigravityCredits?: boolean;
 }
 

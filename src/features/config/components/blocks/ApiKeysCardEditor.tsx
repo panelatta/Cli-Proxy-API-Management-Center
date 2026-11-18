@@ -2,8 +2,10 @@ import type { ApiKeyEntry } from '@/types';
 import { memo, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
+import { FieldLabel } from '@/components/ui/FieldLabel';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { apiKeyNameFingerprint, readApiKeyNames, saveApiKeyName } from '../../apiKeyNames';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -80,8 +82,6 @@ function ScopedApiKeysCardEditor({
   }, [apiKeyIds, apiKeys.length]);
 
   const apiKeyInputId = useId();
-  const nameInputId = useId();
-  const nameHintId = `${nameInputId}-hint`;
   const apiKeyHintId = `${apiKeyInputId}-hint`;
   const apiKeyErrorId = `${apiKeyInputId}-error`;
   const [modalOpen, setModalOpen] = useState(false);
@@ -205,9 +205,9 @@ function ScopedApiKeysCardEditor({
   };
 
   return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <div className={styles.blockHeaderRow}>
-        <label style={{ margin: 0 }}>{t('config_management.visual.api_keys.label')}</label>
+    <div className={styles.apiKeys}>
+      <div className={styles.apiKeysHeader}>
+        <span className={styles.apiKeysTitle}>{t('config_management.visual.api_keys.label')}</span>
         <Button size="sm" onClick={openAddModal} disabled={disabled}>
           {t('config_management.visual.api_keys.add')}
         </Button>
@@ -216,25 +216,25 @@ function ScopedApiKeysCardEditor({
       {apiKeys.length === 0 ? (
         <div className={styles.emptyState}>{t('config_management.visual.api_keys.empty')}</div>
       ) : (
-        <div className="item-list" style={{ marginTop: 4 }}>
+        <ol className={styles.apiKeyList}>
           {apiKeys.map((key, index) => (
-            <div key={renderApiKeyIds[index] ?? `${key}-${index}`} className="item-row">
-              <div className="item-meta">
-                <div className="pill">#{index + 1}</div>
-                <div className="item-title">
+            <li key={renderApiKeyIds[index] ?? `${key}-${index}`} className={styles.apiKeyRow}>
+              <span className={styles.apiKeyIndex}>#{index + 1}</span>
+              <span className={styles.apiKeyMeta}>
+                <span className={styles.apiKeyName}>
                   {entries.find((entry) => entry.apiKey === key)?.name ||
                     names[nameFingerprints[index]] ||
                     t('config_management.visual.api_keys.input_label')}
-                </div>
-                <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
-                <div className="item-subtitle">
+                </span>
+                <span className={styles.apiKeyValue}>{maskApiKey(String(key || ''))}</span>
+                <span className="item-subtitle">
                   {entries
                     .find((entry) => entry.apiKey === key)
                     ?.allowedProviders?.map((provider) => PRODUCT_CHANNELS[provider] ?? provider)
                     .join(', ') || t('config_management.visual.api_keys.products_all')}
-                </div>
-              </div>
-              <div className="item-actions">
+                </span>
+              </span>
+              <span className={styles.apiKeyActions}>
                 {onEntriesChange && (
                   <ToggleSwitch
                     checked={!entries.find((entry) => entry.apiKey === key)?.disabled}
@@ -261,7 +261,7 @@ function ScopedApiKeysCardEditor({
                   />
                 )}
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={() => handleCopy(key)}
                   disabled={disabled}
@@ -269,7 +269,7 @@ function ScopedApiKeysCardEditor({
                   {t('common.copy')}
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={() => openEditModal(renderApiKeyIds[index] ?? '')}
                   disabled={disabled}
@@ -277,20 +277,19 @@ function ScopedApiKeysCardEditor({
                   {t('config_management.visual.common.edit')}
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="ghost"
                   size="sm"
+                  className={styles.apiKeyDelete}
                   onClick={() => handleDelete(renderApiKeyIds[index] ?? '')}
                   disabled={disabled}
                 >
                   {t('config_management.visual.common.delete')}
                 </Button>
-              </div>
-            </div>
+              </span>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
-
-      <div className="hint">{t('config_management.visual.api_keys.hint')}</div>
 
       <Modal
         open={modalOpen}
@@ -313,21 +312,7 @@ function ScopedApiKeysCardEditor({
           </>
         }
       >
-        <div className="form-group">
-          <label htmlFor={nameInputId}>{t('config_management.visual.api_keys.name_label')}</label>
-          <input
-            id={nameInputId}
-            className="input"
-            value={nameValue}
-            onChange={(event) => setNameValue(event.target.value)}
-            placeholder={t('config_management.visual.api_keys.name_placeholder')}
-            aria-describedby={nameHintId}
-            disabled={disabled}
-          />
-          <div id={nameHintId} className="hint">
-            {t('config_management.visual.api_keys.name_hint')}
-          </div>
-        </div>
+        {/* 两条说明都收进标签后的 InfoTip，并以视觉隐藏副本留给 aria-describedby。 */}
         {onEntriesChange && (
           <fieldset className="form-group" disabled={disabled}>
             <legend>{t('config_management.visual.api_keys.products_label')}</legend>
@@ -370,10 +355,21 @@ function ScopedApiKeysCardEditor({
             )}
           </fieldset>
         )}
+        <Input
+          label={t('config_management.visual.api_keys.name_label')}
+          hint={t('config_management.visual.api_keys.name_hint')}
+          value={nameValue}
+          onChange={(event) => setNameValue(event.target.value)}
+          placeholder={t('config_management.visual.api_keys.name_placeholder')}
+          disabled={disabled}
+        />
         <div className="form-group">
-          <label htmlFor={apiKeyInputId}>
-            {t('config_management.visual.api_keys.input_label')}
-          </label>
+          <FieldLabel
+            htmlFor={apiKeyInputId}
+            label={t('config_management.visual.api_keys.input_label')}
+            hint={t('config_management.visual.api_keys.input_hint')}
+            hintId={apiKeyHintId}
+          />
           <div className={styles.apiKeyModalInputRow}>
             <input
               id={apiKeyInputId}
@@ -396,9 +392,6 @@ function ScopedApiKeysCardEditor({
             </Button>
           </div>
           <ApiKeyStrengthMeter value={inputValue} />
-          <div id={apiKeyHintId} className="hint">
-            {t('config_management.visual.api_keys.input_hint')}
-          </div>
           {formError && (
             <div id={apiKeyErrorId} className="error-box">
               {formError}
